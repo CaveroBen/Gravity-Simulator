@@ -153,8 +153,9 @@ class MassSpringNetwork:
         Get relative displacements of all masses.
         
         Relative displacement is computed by subtracting the mean displacement
-        from each individual displacement. This shows motion relative to the
-        center of mass of the system, rather than absolute motion.
+        from each individual displacement. This removes bulk translation of the
+        system and reveals the oscillation patterns relative to the moving grid,
+        rather than showing absolute motion in the lab frame.
         
         Returns:
             Array of relative displacement vectors
