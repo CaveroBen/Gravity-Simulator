@@ -209,6 +209,95 @@ def test_parameter_configuration():
     print("✓ Parameter configuration test passed")
 
 
+def test_periodic_boundaries_square():
+    """Test that periodic boundaries work correctly for square lattice."""
+    print("Testing periodic boundaries for square lattice...")
+    
+    # Create a 3x3 square lattice
+    network = Network2DSquare(size=3)
+    
+    # Test that periodic_vector method exists
+    assert hasattr(network, 'periodic_vector')
+    
+    # Test periodic wrapping in x-direction
+    # Position at (0, 1) should connect to (2, 1) with wrapping
+    pos_left = network.positions[network.idx_map[(0, 1)]]
+    pos_right = network.positions[network.idx_map[(2, 1)]]
+    
+    vec = network.periodic_vector(pos_right, pos_left)
+    # With wrapping, the distance should be 1.0 (spacing), not 2.0
+    distance = np.linalg.norm(vec)
+    assert abs(distance - 1.0) < 0.01, f"Expected distance ~1.0, got {distance}"
+    
+    # Test periodic wrapping in y-direction
+    pos_bottom = network.positions[network.idx_map[(1, 0)]]
+    pos_top = network.positions[network.idx_map[(1, 2)]]
+    
+    vec = network.periodic_vector(pos_top, pos_bottom)
+    distance = np.linalg.norm(vec)
+    assert abs(distance - 1.0) < 0.01, f"Expected distance ~1.0, got {distance}"
+    
+    # Verify connections include wrapped edges
+    # For a 3x3 grid with periodic boundaries, each node makes 2 outgoing connections
+    # (right and bottom with wrapping), so total should be 3*3*2 = 18 connections
+    assert len(network.connections) == 18
+    
+    print("✓ Periodic boundaries test for square lattice passed")
+
+
+def test_periodic_boundaries_triangular():
+    """Test that periodic boundaries work correctly for triangular lattice."""
+    print("Testing periodic boundaries for triangular lattice...")
+    
+    # Create a 3x3 triangular lattice
+    network = Network2DTriangular(size=3)
+    
+    # Test that periodic_vector method exists
+    assert hasattr(network, 'periodic_vector')
+    
+    # Test periodic wrapping
+    pos_left = network.positions[network.idx_map[(0, 1)]]
+    pos_right = network.positions[network.idx_map[(2, 1)]]
+    
+    vec = network.periodic_vector(pos_right, pos_left)
+    distance = np.linalg.norm(vec)
+    # With wrapping, distance should be close to spacing
+    assert distance < 2.0, f"Expected distance < 2.0 with wrapping, got {distance}"
+    
+    # Verify connections include wrapped edges
+    # For triangular lattice, each node makes 3 outgoing connections
+    # (right, bottom, and one diagonal based on row parity)
+    # Total should be 3*3*3 = 27 connections
+    assert len(network.connections) == 27
+    
+    print("✓ Periodic boundaries test for triangular lattice passed")
+
+
+def test_forces_with_periodic_boundaries():
+    """Test that forces are computed correctly with periodic boundaries."""
+    print("Testing force computation with periodic boundaries...")
+    
+    # Create a small square lattice
+    network = Network2DSquare(size=3, spring_constant=10.0, damping=0.0)
+    
+    # Displace a node on the edge
+    edge_idx = network.idx_map[(0, 1)]  # Left edge
+    network.positions[edge_idx, 0] -= 0.2  # Move left
+    
+    # Compute forces
+    forces = network.compute_forces()
+    
+    # The edge node should experience a force pulling it back
+    # Due to periodic boundaries, it's connected to the right edge too
+    assert np.any(forces[edge_idx] != 0), "Edge node should experience force with periodic boundaries"
+    
+    # Force should be non-zero on multiple nodes due to network connectivity
+    non_zero_forces = np.sum(np.linalg.norm(forces, axis=1) > 1e-10)
+    assert non_zero_forces > 2, "Multiple nodes should experience forces in periodic lattice"
+    
+    print("✓ Force computation with periodic boundaries test passed")
+
+
 def run_all_tests():
     """Run all tests."""
     print("\n" + "="*60)
@@ -224,7 +313,10 @@ def run_all_tests():
         test_spring_forces,
         test_brownian_motion,
         test_output_methods,
-        test_parameter_configuration
+        test_parameter_configuration,
+        test_periodic_boundaries_square,
+        test_periodic_boundaries_triangular,
+        test_forces_with_periodic_boundaries
     ]
     
     passed = 0
