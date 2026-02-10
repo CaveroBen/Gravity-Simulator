@@ -75,7 +75,7 @@ def test_simulation_runs():
     # Test 1D with more steps for robustness
     network_1d = Network1D(n_masses=5, temperature=0.5)
     initial_pos_1d = network_1d.positions.copy()
-    network_1d.simulate(steps=100)  # Increased from 10 to 100 for more reliable test
+    network_1d.simulate(steps=100, show_progress=False)  # Disable progress bar in tests
     final_pos_1d = network_1d.positions
     
     # Center node should have moved (due to Brownian motion)
@@ -87,7 +87,7 @@ def test_simulation_runs():
     # Test 2D Square with more steps
     network_2d_sq = Network2DSquare(size=3, temperature=0.5)
     initial_pos_2d = network_2d_sq.positions.copy()
-    network_2d_sq.simulate(steps=100)  # Increased from 10 to 100
+    network_2d_sq.simulate(steps=100, show_progress=False)  # Disable progress bar in tests
     final_pos_2d = network_2d_sq.positions
     
     # Center node should have moved
@@ -103,7 +103,7 @@ def test_displacement_tracking():
     print("Testing displacement tracking...")
     
     network = Network1D(n_masses=5, temperature=0.5)
-    network.simulate(steps=50)
+    network.simulate(steps=50, show_progress=False)  # Disable progress bar in tests
     
     displacements = network.get_displacements()
     
@@ -162,7 +162,7 @@ def test_output_methods():
     print("Testing output methods...")
     
     network = Network1D(n_masses=5, temperature=0.5)
-    network.simulate(steps=10)
+    network.simulate(steps=10, show_progress=False)  # Disable progress bar in tests
     
     # Test get_final_positions
     positions = network.get_final_positions()
@@ -171,6 +171,10 @@ def test_output_methods():
     # Test get_displacements
     displacements = network.get_displacements()
     assert displacements.shape == (5, 1)
+    
+    # Test get_initial_positions
+    initial_positions = network.get_initial_positions()
+    assert initial_positions.shape == (5, 1)
     
     print("✓ Output methods test passed")
 
