@@ -43,16 +43,24 @@ class MassSpringNetwork:
         """
         Compute forces on all masses from spring connections.
         
-        Note: This implementation uses the initial configuration as the equilibrium.
-        The spring force is proportional to the displacement from initial positions,
-        which are stored implicitly in the connection distances.
+        For 2D networks with periodic boundaries, uses periodic_vector() to calculate
+        the minimum displacement considering wrapping. For 1D networks or 2D networks
+        without periodic boundaries, uses direct position differences.
         """
         forces = np.zeros_like(self.positions)
         
-        # Spring forces (using current distance as displacement from equilibrium)
-        # In this model, the initial configuration defines the rest lengths
+        # Check if this network has periodic boundary support
+        has_periodic = hasattr(self, 'periodic_vector')
+        
+        # Spring forces
         for i, j in self.connections:
-            displacement = self.positions[j] - self.positions[i]
+            if has_periodic:
+                # Use periodic boundary conditions for distance calculation
+                displacement = self.periodic_vector(self.positions[i], self.positions[j])
+            else:
+                # Direct displacement without periodic boundaries
+                displacement = self.positions[j] - self.positions[i]
+            
             distance = np.linalg.norm(displacement)
             if distance > 0:
                 force_magnitude = self.k * distance
@@ -178,11 +186,11 @@ class Network1D(MassSpringNetwork):
 
 
 class Network2DSquare(MassSpringNetwork):
-    """2D mass-spring network with square lattice."""
+    """2D mass-spring network with square lattice and periodic boundary conditions."""
     
     def __init__(self, size: int, **kwargs):
         """
-        Initialize 2D square lattice network.
+        Initialize 2D square lattice network with periodic boundary conditions.
         
         Args:
             size: Size of the square lattice (size x size)
@@ -191,10 +199,11 @@ class Network2DSquare(MassSpringNetwork):
         super().__init__(**kwargs)
         self.size = size
         self.n_masses = size * size
+        self.spacing = 1.0  # Grid spacing for periodic boundaries
         self._initialize_network()
     
     def _initialize_network(self):
-        """Initialize the 2D square lattice structure."""
+        """Initialize the 2D square lattice structure with periodic boundaries."""
         # Create masses in a grid
         self.positions = np.zeros((self.n_masses, 2))
         self.idx_map = {}
@@ -202,25 +211,23 @@ class Network2DSquare(MassSpringNetwork):
         idx = 0
         for i in range(self.size):
             for j in range(self.size):
-                self.positions[idx] = [i * 1.0, j * 1.0]
+                self.positions[idx] = [i * self.spacing, j * self.spacing]
                 self.idx_map[(i, j)] = idx
                 idx += 1
         
         self.velocities = np.zeros_like(self.positions)
         
-        # Connect adjacent masses (4 neighbors)
+        # Connect adjacent masses with periodic boundaries (4 neighbors)
         self.connections = []
         for i in range(self.size):
             for j in range(self.size):
                 idx1 = self.idx_map[(i, j)]
-                # Right neighbor
-                if j < self.size - 1:
-                    idx2 = self.idx_map[(i, j + 1)]
-                    self.connections.append((idx1, idx2))
-                # Bottom neighbor
-                if i < self.size - 1:
-                    idx2 = self.idx_map[(i + 1, j)]
-                    self.connections.append((idx1, idx2))
+                # Right neighbor (with wrapping)
+                idx2 = self.idx_map[(i, (j + 1) % self.size)]
+                self.connections.append((idx1, idx2))
+                # Bottom neighbor (with wrapping)
+                idx2 = self.idx_map[((i + 1) % self.size, j)]
+                self.connections.append((idx1, idx2))
         
         # Center node
         center_i, center_j = self.size // 2, self.size // 2
@@ -228,14 +235,33 @@ class Network2DSquare(MassSpringNetwork):
         
         # Store initial positions
         self.initial_positions = self.positions.copy()
+    
+    def periodic_vector(self, pos_i: np.ndarray, pos_j: np.ndarray) -> np.ndarray:
+        """
+        Get minimum vector from pos_i to pos_j considering periodic boundaries.
+        
+        Args:
+            pos_i: Position of first node
+            pos_j: Position of second node
+            
+        Returns:
+            Minimum displacement vector considering periodic wrapping
+        """
+        dx = pos_j - pos_i
+        # Apply periodic boundary conditions
+        Lx = self.size * self.spacing
+        Ly = self.size * self.spacing
+        dx[0] = dx[0] - Lx * np.round(dx[0] / Lx)
+        dx[1] = dx[1] - Ly * np.round(dx[1] / Ly)
+        return dx
 
 
 class Network2DTriangular(MassSpringNetwork):
-    """2D mass-spring network with triangular lattice."""
+    """2D mass-spring network with triangular lattice and periodic boundary conditions."""
     
     def __init__(self, size: int, **kwargs):
         """
-        Initialize 2D triangular lattice network.
+        Initialize 2D triangular lattice network with periodic boundary conditions.
         
         Args:
             size: Size of the triangular lattice
@@ -244,10 +270,11 @@ class Network2DTriangular(MassSpringNetwork):
         super().__init__(**kwargs)
         self.size = size
         self.n_masses = size * size
+        self.spacing = 1.0  # Grid spacing for periodic boundaries
         self._initialize_network()
     
     def _initialize_network(self):
-        """Initialize the 2D triangular lattice structure."""
+        """Initialize the 2D triangular lattice structure with periodic boundaries."""
         # Create masses in a triangular grid
         self.positions = np.zeros((self.n_masses, 2))
         self.idx_map = {}
@@ -256,41 +283,37 @@ class Network2DTriangular(MassSpringNetwork):
         for i in range(self.size):
             for j in range(self.size):
                 # Offset every other row for triangular lattice
-                x = i * 1.0
-                y = j * 1.0 + (0.5 if i % 2 == 1 else 0.0)
+                x = i * self.spacing
+                y = j * self.spacing + (0.5 if i % 2 == 1 else 0.0)
                 self.positions[idx] = [x, y]
                 self.idx_map[(i, j)] = idx
                 idx += 1
         
         self.velocities = np.zeros_like(self.positions)
         
-        # Connect adjacent masses (6 neighbors for triangular lattice)
+        # Connect adjacent masses with periodic boundaries (6 neighbors for triangular lattice)
         self.connections = []
         for i in range(self.size):
             for j in range(self.size):
                 idx1 = self.idx_map[(i, j)]
                 
-                # Right neighbor
-                if j < self.size - 1:
-                    idx2 = self.idx_map[(i, j + 1)]
-                    self.connections.append((idx1, idx2))
+                # Right neighbor (with wrapping)
+                idx2 = self.idx_map[(i, (j + 1) % self.size)]
+                self.connections.append((idx1, idx2))
                 
-                # Bottom neighbor
-                if i < self.size - 1:
-                    idx2 = self.idx_map[(i + 1, j)]
-                    self.connections.append((idx1, idx2))
+                # Bottom neighbor (with wrapping)
+                idx2 = self.idx_map[((i + 1) % self.size, j)]
+                self.connections.append((idx1, idx2))
                 
-                # Diagonal connections for triangular lattice
+                # Diagonal connections for triangular lattice (with wrapping)
                 if i % 2 == 0:
-                    # Even rows: connect to bottom-left
-                    if i < self.size - 1 and j > 0:
-                        idx2 = self.idx_map[(i + 1, j - 1)]
-                        self.connections.append((idx1, idx2))
+                    # Even rows: connect to bottom-left (with wrapping)
+                    idx2 = self.idx_map[((i + 1) % self.size, (j - 1) % self.size)]
+                    self.connections.append((idx1, idx2))
                 else:
-                    # Odd rows: connect to bottom-right
-                    if i < self.size - 1 and j < self.size - 1:
-                        idx2 = self.idx_map[(i + 1, j + 1)]
-                        self.connections.append((idx1, idx2))
+                    # Odd rows: connect to bottom-right (with wrapping)
+                    idx2 = self.idx_map[((i + 1) % self.size, (j + 1) % self.size)]
+                    self.connections.append((idx1, idx2))
         
         # Center node
         center_i, center_j = self.size // 2, self.size // 2
@@ -298,6 +321,27 @@ class Network2DTriangular(MassSpringNetwork):
         
         # Store initial positions
         self.initial_positions = self.positions.copy()
+    
+    def periodic_vector(self, pos_i: np.ndarray, pos_j: np.ndarray) -> np.ndarray:
+        """
+        Get minimum vector from pos_i to pos_j considering periodic boundaries.
+        
+        Args:
+            pos_i: Position of first node
+            pos_j: Position of second node
+            
+        Returns:
+            Minimum displacement vector considering periodic wrapping
+        """
+        dx = pos_j - pos_i
+        # Apply periodic boundary conditions
+        # For triangular lattice, we still use rectangular periodic boundaries
+        Lx = self.size * self.spacing
+        # For triangular lattice, effective y-size accounting for offset
+        Ly = self.size * self.spacing
+        dx[0] = dx[0] - Lx * np.round(dx[0] / Lx)
+        dx[1] = dx[1] - Ly * np.round(dx[1] / Ly)
+        return dx
 
 
 def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Network"):
