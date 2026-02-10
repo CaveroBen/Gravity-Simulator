@@ -628,6 +628,7 @@ def print_results(network: MassSpringNetwork):
     print(f"  - Spring constant: {network.k}")
     print(f"  - Temperature: {network.temperature}")
     print(f"  - Mass: {network.mass}")
+    print(f"  - Rest length: {network.rest_length}")
     
     print(f"\nFinal Positions:")
     for i, pos in enumerate(positions):
@@ -652,4 +653,69 @@ def print_results(network: MassSpringNetwork):
     print(f"  - Max: {np.max(displacement_mags):.4f}")
     print(f"  - Min: {np.min(displacement_mags):.4f}")
     
+    # Radial displacement statistics
+    radial_history = network.get_radial_displacement_history()
+    if len(radial_history) > 0:
+        print(f"\nRadial Displacement (Migration toward center):")
+        print(f"  - Final: {radial_history[-1]:.6f}")
+        print(f"  - Mean (last 20%): {np.mean(radial_history[-max(1, len(radial_history)//5):]):.6f}")
+        print(f"  - (Positive = attraction, Negative = repulsion)")
+    
+    # Neighbor distance statistics
+    neighbor_history = network.get_neighbor_distance_history()
+    if len(neighbor_history) > 0:
+        print(f"\nNeighbor Distances to Center:")
+        print(f"  - Final: {neighbor_history[-1]:.4f}")
+        print(f"  - Mean (last 20%): {np.mean(neighbor_history[-max(1, len(neighbor_history)//5):]):.4f}")
+        print(f"  - Rest length: {network.rest_length:.4f}")
+    
     print("="*60 + "\n")
+
+
+def visualize_migration(network: MassSpringNetwork, title: str = "Migration Analysis"):
+    """
+    Visualize the migration behavior showing radial displacement and neighbor distances over time.
+    
+    Args:
+        network: The network to visualize
+        title: Title for the plot
+    """
+    radial_history = network.get_radial_displacement_history()
+    neighbor_history = network.get_neighbor_distance_history()
+    
+    if len(radial_history) == 0 or len(neighbor_history) == 0:
+        print("Warning: No history data to visualize. Run a simulation first.")
+        return None
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+    
+    # Convert to time steps
+    time_steps = np.arange(len(radial_history))
+    
+    # Plot radial displacement over time
+    ax1.plot(time_steps, radial_history, 'b-', linewidth=2, label='Radial displacement')
+    ax1.axhline(y=0, color='k', linestyle='--', alpha=0.5, linewidth=2, label='No displacement')
+    ax1.fill_between(time_steps, 0, radial_history,
+                     where=(np.array(radial_history) > 0),
+                     color='green', alpha=0.3, label='Attraction')
+    ax1.fill_between(time_steps, 0, radial_history,
+                     where=(np.array(radial_history) < 0),
+                     color='red', alpha=0.3, label='Repulsion')
+    ax1.set_xlabel('Time Step', fontsize=12)
+    ax1.set_ylabel('Mean Radial Displacement', fontsize=12)
+    ax1.set_title(f'{title} - Migration Toward/Away from Center', fontsize=13)
+    ax1.legend(fontsize=10)
+    ax1.grid(True, alpha=0.3)
+    
+    # Plot neighbor distances over time
+    ax2.plot(time_steps, neighbor_history, 'r-', linewidth=2, label='Mean neighbor distance')
+    ax2.axhline(y=network.rest_length, color='k', linestyle='--',
+               linewidth=2, alpha=0.5, label=f'Equilibrium ({network.rest_length:.2f})')
+    ax2.set_xlabel('Time Step', fontsize=12)
+    ax2.set_ylabel('Distance to Center', fontsize=12)
+    ax2.set_title('Neighbor Distances to Center Oscillator', fontsize=13)
+    ax2.legend(fontsize=10)
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    return fig
