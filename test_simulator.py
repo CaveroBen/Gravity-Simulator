@@ -359,6 +359,139 @@ def test_entropy_driven_migration():
 
 
 
+def test_multi_simulation_averaging():
+    """Test multi-simulation averaging functionality."""
+    print("Testing multi-simulation averaging...")
+    
+    from quantum_gravity_simulator import run_multiple_simulations, visualize_averaged_results
+    
+    np.random.seed(42)
+    
+    # Test with 1D network
+    network_params = {
+        'n_masses': 5,
+        'mass': 1.0,
+        'spring_constant': 10.0,
+        'damping': 0.5,
+        'dt': 0.01,
+        'temperature': 1.0
+    }
+    
+    results = run_multiple_simulations(
+        network_class=Network1D,
+        network_params=network_params,
+        simulation_steps=100,
+        n_simulations=3,  # Use small number for speed
+        show_progress=False
+    )
+    
+    # Check that results dictionary has expected keys
+    assert 'initial_positions' in results
+    assert 'average_final_positions' in results
+    assert 'average_displacements' in results
+    assert 'std_displacements' in results
+    assert 'all_final_positions' in results
+    assert 'all_displacements' in results
+    assert 'n_simulations' in results
+    
+    # Check that we have the right number of simulations
+    assert results['n_simulations'] == 3
+    assert len(results['all_final_positions']) == 3
+    assert len(results['all_displacements']) == 3
+    
+    # Check shapes are correct
+    assert results['initial_positions'].shape == (5, 1)
+    assert results['average_final_positions'].shape == (5, 1)
+    assert results['average_displacements'].shape == (5, 1)
+    
+    # Check that averaged positions are different from initial
+    avg_disp_magnitude = np.linalg.norm(results['average_displacements'])
+    assert avg_disp_magnitude > 0, "Average displacements should be non-zero"
+    
+    print("✓ Multi-simulation averaging test passed")
+
+
+def test_multi_simulation_2d():
+    """Test multi-simulation averaging with 2D networks."""
+    print("Testing multi-simulation averaging with 2D networks...")
+    
+    from quantum_gravity_simulator import run_multiple_simulations
+    
+    np.random.seed(42)
+    
+    # Test with 2D square network
+    network_params = {
+        'size': 3,
+        'mass': 1.0,
+        'spring_constant': 8.0,
+        'damping': 0.3,
+        'dt': 0.01,
+        'temperature': 1.0
+    }
+    
+    results = run_multiple_simulations(
+        network_class=Network2DSquare,
+        network_params=network_params,
+        simulation_steps=100,
+        n_simulations=3,
+        show_progress=False
+    )
+    
+    # Check shapes are correct for 2D (3x3 = 9 masses, 2D positions)
+    assert results['initial_positions'].shape == (9, 2)
+    assert results['average_final_positions'].shape == (9, 2)
+    assert results['average_displacements'].shape == (9, 2)
+    
+    # Check that averaged positions are different from initial
+    avg_disp_magnitude = np.linalg.norm(results['average_displacements'])
+    assert avg_disp_magnitude > 0, "Average displacements should be non-zero"
+    
+    print("✓ Multi-simulation averaging with 2D networks test passed")
+
+
+def test_visualization_averaged_results():
+    """Test that visualization of averaged results works."""
+    print("Testing visualization of averaged results...")
+    
+    from quantum_gravity_simulator import run_multiple_simulations, visualize_averaged_results
+    import matplotlib.pyplot as plt
+    
+    np.random.seed(42)
+    
+    # Run simulations
+    network_params = {
+        'n_masses': 5,
+        'mass': 1.0,
+        'spring_constant': 10.0,
+        'damping': 0.5,
+        'dt': 0.01,
+        'temperature': 1.0
+    }
+    
+    results = run_multiple_simulations(
+        network_class=Network1D,
+        network_params=network_params,
+        simulation_steps=50,
+        n_simulations=2,
+        show_progress=False
+    )
+    
+    # Test that visualization doesn't crash
+    fig = visualize_averaged_results(
+        results=results,
+        network_class=Network1D,
+        network_params=network_params,
+        title="Test Visualization"
+    )
+    
+    assert fig is not None, "Visualization should return a figure"
+    
+    # Clean up
+    plt.close(fig)
+    
+    print("✓ Visualization of averaged results test passed")
+
+
 def run_all_tests():
     """Run all tests."""
     print("\n" + "="*60)
@@ -378,7 +511,10 @@ def run_all_tests():
         test_periodic_boundaries_square,
         test_periodic_boundaries_triangular,
         test_forces_with_periodic_boundaries,
-        test_entropy_driven_migration
+        test_entropy_driven_migration,
+        test_multi_simulation_averaging,
+        test_multi_simulation_2d,
+        test_visualization_averaged_results
     ]
     
     passed = 0

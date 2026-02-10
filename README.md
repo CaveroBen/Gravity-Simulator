@@ -37,6 +37,27 @@ pip install -r requirements.txt
 
 ## Quick Start
 
+### Multi-Simulation Averaging Demo (New!)
+
+Run the averaging demonstration to see how running multiple simulations and averaging the results provides robust statistical insights:
+
+```bash
+python demo_averaging.py
+```
+
+This will:
+1. Run 10 simulations each for 1D chain, 2D square lattice, and 2D triangular lattice
+2. Collect final positions from each simulation run
+3. Calculate average positions and displacement vectors across all runs
+4. Generate visualizations showing average positions with displacement arrows
+5. Provide statistical summaries of averaged results
+
+This feature is useful for:
+- Reducing noise from stochastic Brownian motion
+- Getting more reliable estimates of system behavior
+- Understanding typical displacement patterns
+- Statistical analysis of simulation outcomes
+
 ### Entropy-Driven Migration Demo (Recommended)
 
 Run the migration demonstration to see how coupled oscillators respond to a center node undergoing Brownian motion:
@@ -142,6 +163,50 @@ network = Network2DTriangular(
 network.simulate(steps=1500, show_progress=True)
 ```
 
+### Multi-Simulation Averaging
+
+Run multiple simulations and average the results for more robust statistical insights:
+
+```python
+from quantum_gravity_simulator import (
+    Network2DSquare,
+    run_multiple_simulations,
+    visualize_averaged_results
+)
+
+# Define network parameters
+network_params = {
+    'size': 5,
+    'mass': 1.0,
+    'spring_constant': 8.0,
+    'damping': 0.3,
+    'dt': 0.01,
+    'temperature': 1.5
+}
+
+# Run 10 simulations
+results = run_multiple_simulations(
+    network_class=Network2DSquare,
+    network_params=network_params,
+    simulation_steps=1500,
+    n_simulations=10,
+    show_progress=True
+)
+
+# Visualize averaged results
+fig = visualize_averaged_results(
+    results=results,
+    network_class=Network2DSquare,
+    network_params=network_params,
+    title="Averaged Simulation Results"
+)
+
+# Access averaged data
+average_positions = results['average_final_positions']
+average_displacements = results['average_displacements']
+std_displacements = results['std_displacements']
+```
+
 ## Visualization Features
 
 The simulator generates comprehensive visualizations showing:
@@ -156,6 +221,7 @@ The simulator generates comprehensive visualizations showing:
 5. **Network Connections**: Spring connections shown in both initial (faint gray) and final (blue) configurations
 6. **Relative Displacement Heatmap**: Color-coded visualization of relative displacement magnitudes
 7. **Migration Analysis Plots**: Time-series showing radial displacement and neighbor distances over time
+8. **Averaged Results** (new): Visualizations of averaged positions and displacements across multiple simulation runs
 
 ## Physics Model
 

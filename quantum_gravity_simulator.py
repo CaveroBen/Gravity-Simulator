@@ -722,3 +722,201 @@ def visualize_migration(network: MassSpringNetwork, title: str = "Migration Anal
     
     plt.tight_layout()
     return fig
+
+
+def run_multiple_simulations(network_class, network_params: dict, 
+                            simulation_steps: int, n_simulations: int = 10,
+                            show_progress: bool = True) -> dict:
+    """
+    Run multiple simulations and collect results for averaging.
+    
+    Args:
+        network_class: The network class to use (Network1D, Network2DSquare, or Network2DTriangular)
+        network_params: Dictionary of parameters to pass to the network constructor
+        simulation_steps: Number of steps to run each simulation
+        n_simulations: Number of simulations to run (default: 10)
+        show_progress: Whether to show progress bars
+    
+    Returns:
+        Dictionary containing:
+            - 'initial_positions': Initial positions (same for all runs)
+            - 'average_final_positions': Average final positions across all simulations
+            - 'average_displacements': Average displacements across all simulations
+            - 'std_displacements': Standard deviation of displacements
+            - 'all_final_positions': List of final positions from each simulation
+            - 'all_displacements': List of displacements from each simulation
+            - 'n_simulations': Number of simulations run
+    """
+    all_final_positions = []
+    all_displacements = []
+    initial_positions = None
+    
+    print(f"\nRunning {n_simulations} simulations...")
+    
+    for i in tqdm(range(n_simulations), desc="Simulations", disable=not show_progress):
+        # Create a fresh network for each simulation
+        network = network_class(**network_params)
+        
+        # Store initial positions from the first simulation
+        if initial_positions is None:
+            initial_positions = network.get_initial_positions()
+        
+        # Run the simulation
+        network.simulate(steps=simulation_steps, show_progress=False)
+        
+        # Collect results
+        final_positions = network.get_final_positions()
+        displacements = network.get_displacements()
+        
+        all_final_positions.append(final_positions)
+        all_displacements.append(displacements)
+    
+    # Calculate averages
+    average_final_positions = np.mean(all_final_positions, axis=0)
+    average_displacements = np.mean(all_displacements, axis=0)
+    std_displacements = np.std(all_displacements, axis=0)
+    
+    return {
+        'initial_positions': initial_positions,
+        'average_final_positions': average_final_positions,
+        'average_displacements': average_displacements,
+        'std_displacements': std_displacements,
+        'all_final_positions': all_final_positions,
+        'all_displacements': all_displacements,
+        'n_simulations': n_simulations
+    }
+
+
+def visualize_averaged_results(results: dict, network_class, network_params: dict, 
+                              title: str = "Averaged Simulation Results",
+                              amplification_factor: float = 5.0):
+    """
+    Visualize averaged results from multiple simulations.
+    
+    Args:
+        results: Dictionary returned by run_multiple_simulations
+        network_class: The network class used (Network1D, Network2DSquare, or Network2DTriangular)
+        network_params: Dictionary of network parameters
+        title: Title for the plot
+        amplification_factor: Factor to amplify displacement vectors for visibility
+    
+    Returns:
+        The matplotlib figure
+    """
+    initial_positions = results['initial_positions']
+    average_final_positions = results['average_final_positions']
+    average_displacements = results['average_displacements']
+    n_simulations = results['n_simulations']
+    
+    # Determine network type from initial positions shape
+    is_1d = initial_positions.shape[1] == 1
+    
+    # Create a temporary network to get center_idx and connections
+    temp_network = network_class(**network_params)
+    center_idx = temp_network.center_idx
+    connections = temp_network.connections
+    
+    if is_1d:
+        # 1D visualization
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+        
+        # Plot initial and averaged final positions with displacement vectors
+        ax1.scatter(initial_positions[:, 0], np.zeros(len(initial_positions)), 
+                   c='lightblue', s=100, alpha=0.5, label='Initial positions', marker='o')
+        ax1.scatter(average_final_positions[:, 0], np.zeros(len(average_final_positions)), 
+                   c='blue', s=100, label=f'Average final positions (n={n_simulations})', marker='o')
+        
+        # Draw average displacement vectors (amplified and thicker)
+        for i in range(len(average_final_positions)):
+            if i != center_idx:  # Skip center node for clarity
+                avg_disp = average_displacements[i, 0] * amplification_factor
+                ax1.arrow(initial_positions[i, 0], 0, 
+                         avg_disp, 0,
+                         head_width=0.15, head_length=0.08, fc='green', ec='green', 
+                         alpha=0.7, width=0.04)
+        
+        if center_idx is not None:
+            ax1.scatter(average_final_positions[center_idx, 0], 0, 
+                       c='red', s=200, marker='*', label='Center node', zorder=5)
+        ax1.set_xlabel('Position')
+        ax1.set_title(f'{title} - Average Displacement Vectors (amplified {amplification_factor}x, n={n_simulations})')
+        ax1.legend()
+        ax1.grid(True)
+        
+        # Plot average displacements
+        non_center_mask = np.ones(len(average_final_positions), dtype=bool)
+        if center_idx is not None:
+            non_center_mask[center_idx] = False
+        
+        indices = np.arange(len(average_final_positions))
+        ax2.bar(indices[non_center_mask], 
+                average_displacements[non_center_mask, 0], 
+                color='green')
+        ax2.set_xlabel('Mass Index')
+        ax2.set_ylabel('Average Displacement')
+        ax2.set_title(f'Average Displacements of Non-Central Masses (n={n_simulations})')
+        ax2.grid(True)
+        
+    else:
+        # 2D visualization
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
+        
+        # Plot connections at initial positions (faint)
+        for i, j in connections:
+            pos_i, pos_j = initial_positions[i], initial_positions[j]
+            ax1.plot([pos_i[0], pos_j[0]], [pos_i[1], pos_j[1]], 
+                    'gray', alpha=0.15, linewidth=0.5)
+        
+        # Plot connections at average final positions
+        for i, j in connections:
+            pos_i, pos_j = average_final_positions[i], average_final_positions[j]
+            ax1.plot([pos_i[0], pos_j[0]], [pos_i[1], pos_j[1]], 
+                    'b-', alpha=0.3, linewidth=0.5)
+        
+        # Plot initial positions (faint)
+        ax1.scatter(initial_positions[:, 0], initial_positions[:, 1], 
+                   c='lightblue', s=50, alpha=0.4, label='Initial positions')
+        
+        # Plot average final positions
+        ax1.scatter(average_final_positions[:, 0], average_final_positions[:, 1], 
+                   c='blue', s=50, label=f'Average final positions (n={n_simulations})')
+        
+        # Draw average displacement vectors for non-center nodes (amplified and thicker)
+        for i in range(len(average_final_positions)):
+            if i != center_idx:
+                avg_disp = average_displacements[i] * amplification_factor
+                ax1.arrow(initial_positions[i, 0], initial_positions[i, 1],
+                         avg_disp[0], avg_disp[1],
+                         head_width=0.08, head_length=0.05, 
+                         fc='green', ec='green', alpha=0.7, width=0.02)
+        
+        if center_idx is not None:
+            ax1.scatter(average_final_positions[center_idx, 0], 
+                       average_final_positions[center_idx, 1],
+                       c='red', s=200, marker='*', label='Center node', zorder=5)
+        ax1.set_xlabel('X Position')
+        ax1.set_ylabel('Y Position')
+        ax1.set_title(f'{title} - Average Displacement Vectors (amplified {amplification_factor}x, n={n_simulations})')
+        ax1.legend()
+        ax1.grid(True)
+        ax1.axis('equal')
+        
+        # Plot average displacement magnitudes
+        non_center_mask = np.ones(len(average_final_positions), dtype=bool)
+        if center_idx is not None:
+            non_center_mask[center_idx] = False
+        
+        avg_displacement_magnitudes = np.linalg.norm(average_displacements[non_center_mask], axis=1)
+        scatter = ax2.scatter(average_final_positions[non_center_mask, 0], 
+                            average_final_positions[non_center_mask, 1],
+                            c=avg_displacement_magnitudes, 
+                            s=100, cmap='viridis')
+        plt.colorbar(scatter, ax=ax2, label='Average Displacement Magnitude')
+        ax2.set_xlabel('X Position')
+        ax2.set_ylabel('Y Position')
+        ax2.set_title(f'Average Displacement Magnitudes (n={n_simulations})')
+        ax2.grid(True)
+        ax2.axis('equal')
+    
+    plt.tight_layout()
+    return fig
