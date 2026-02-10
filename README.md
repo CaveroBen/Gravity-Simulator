@@ -128,10 +128,13 @@ The simulator generates comprehensive visualizations showing:
 
 1. **Initial Positions**: Light blue circles showing where masses started
 2. **Final Positions**: Blue circles showing where masses ended up
-3. **Displacement Vectors**: Green arrows from initial to final positions
+3. **Relative Motion Vectors**: Green arrows showing **relative motion** (motion relative to the grid/center of mass)
+   - Vectors are computed by subtracting the mean displacement from each element's displacement
+   - This shows the oscillation pattern around the center rather than bulk motion
+   - Vectors are **amplified 5x** and drawn with **thicker arrows** for better visibility
 4. **Center Node**: Red star marking the thermally-excited center node
 5. **Network Connections**: Spring connections shown in both initial (faint gray) and final (blue) configurations
-6. **Displacement Heatmap**: Color-coded visualization of displacement magnitudes
+6. **Relative Displacement Heatmap**: Color-coded visualization of relative displacement magnitudes
 
 ## Physics Model
 
@@ -175,6 +178,16 @@ Positions are updated using a simple Euler integration:
 v(t+dt) = v(t) + (F/m) * dt
 x(t+dt) = x(t) + v(t) * dt
 ```
+
+### Relative Motion Visualization
+The visualizations display **relative motion** rather than absolute motion:
+- **Absolute displacement**: The raw change in position from initial to final state
+- **Relative displacement**: Displacement minus the mean displacement of all masses
+  ```
+  d_rel[i] = d_abs[i] - mean(d_abs[all])
+  ```
+- This removes the bulk translation of the system, showing oscillation patterns relative to the grid
+- The center node's Brownian motion causes the entire framework to drift, but relative motion reveals the interesting dynamics of how masses respond to the center's fluctuations
 
 ## Parameters
 

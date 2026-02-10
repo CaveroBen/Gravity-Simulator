@@ -147,6 +147,25 @@ class MassSpringNetwork:
         if len(self.displacement_history) > 1:
             return self.displacement_history[-1]
         return np.zeros_like(self.positions)
+    
+    def get_relative_displacements(self) -> np.ndarray:
+        """
+        Get relative displacements of all masses.
+        
+        Relative displacement is computed by subtracting the mean displacement
+        from each individual displacement. This removes bulk translation of the
+        system and reveals the oscillation patterns relative to the moving grid,
+        rather than showing absolute motion in the lab frame.
+        
+        Returns:
+            Array of relative displacement vectors
+        """
+        displacements = self.get_displacements()
+        # Calculate mean displacement across all masses
+        mean_displacement = np.mean(displacements, axis=0)
+        # Subtract mean to get relative displacements
+        relative_displacements = displacements - mean_displacement
+        return relative_displacements
 
 
 class Network1D(MassSpringNetwork):
@@ -344,57 +363,62 @@ class Network2DTriangular(MassSpringNetwork):
         return dx
 
 
-def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Network"):
+def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Network", 
+                     amplification_factor: float = 5.0):
     """
-    Visualize the final state of the network with displacement vectors.
-    Shows both initial and displaced positions.
+    Visualize the final state of the network with relative displacement vectors.
+    Shows both initial and displaced positions with motion relative to the grid.
     
     Args:
         network: The network to visualize
         title: Title for the plot
+        amplification_factor: Factor to amplify displacement vectors for visibility (default: 5.0)
     """
     positions = network.get_final_positions()
     displacements = network.get_displacements()
+    relative_displacements = network.get_relative_displacements()
     initial_positions = network.get_initial_positions()
     
     if positions.shape[1] == 1:
         # 1D visualization
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
         
-        # Plot initial and final positions with displacement vectors
+        # Plot initial and final positions with relative displacement vectors
         ax1.scatter(initial_positions[:, 0], np.zeros(len(initial_positions)), 
                    c='lightblue', s=100, alpha=0.5, label='Initial positions', marker='o')
         ax1.scatter(positions[:, 0], np.zeros(len(positions)), 
                    c='blue', s=100, label='Final positions', marker='o')
         
-        # Draw displacement vectors
+        # Draw relative displacement vectors (amplified and thicker)
         for i in range(len(positions)):
             if i != network.center_idx:  # Skip center node for clarity
+                # Use relative displacement instead of absolute
+                rel_disp = relative_displacements[i, 0] * amplification_factor
                 ax1.arrow(initial_positions[i, 0], 0, 
-                         displacements[i, 0], 0,
-                         head_width=0.1, head_length=0.05, fc='green', ec='green', 
-                         alpha=0.7, width=0.02)
+                         rel_disp, 0,
+                         head_width=0.15, head_length=0.08, fc='green', ec='green', 
+                         alpha=0.7, width=0.04)  # Thicker arrows
         
         if network.center_idx is not None:
             ax1.scatter(positions[network.center_idx, 0], 0, 
                        c='red', s=200, marker='*', label='Center node', zorder=5)
         ax1.set_xlabel('Position')
-        ax1.set_title(f'{title} - Positions and Displacement Vectors')
+        ax1.set_title(f'{title} - Relative Motion Vectors (amplified {amplification_factor}x)')
         ax1.legend()
         ax1.grid(True)
         
-        # Plot displacements
+        # Plot relative displacements
         non_center_mask = np.ones(len(positions), dtype=bool)
         if network.center_idx is not None:
             non_center_mask[network.center_idx] = False
         
         indices = np.arange(len(positions))
         ax2.bar(indices[non_center_mask], 
-                displacements[non_center_mask, 0], 
+                relative_displacements[non_center_mask, 0], 
                 color='green')
         ax2.set_xlabel('Mass Index')
-        ax2.set_ylabel('Displacement')
-        ax2.set_title('Displacements of Non-Central Masses')
+        ax2.set_ylabel('Relative Displacement')
+        ax2.set_title('Relative Displacements of Non-Central Masses')
         ax2.grid(True)
         
     else:
@@ -421,13 +445,15 @@ def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Netw
         ax1.scatter(positions[:, 0], positions[:, 1], 
                    c='blue', s=50, label='Final positions')
         
-        # Draw displacement vectors for non-center nodes (center node vector omitted for clarity)
+        # Draw relative displacement vectors for non-center nodes (amplified and thicker)
         for i in range(len(positions)):
             if i != network.center_idx:
+                # Use relative displacement amplified for visibility
+                rel_disp = relative_displacements[i] * amplification_factor
                 ax1.arrow(initial_positions[i, 0], initial_positions[i, 1],
-                         displacements[i, 0], displacements[i, 1],
-                         head_width=0.05, head_length=0.03, 
-                         fc='green', ec='green', alpha=0.6, width=0.01)
+                         rel_disp[0], rel_disp[1],
+                         head_width=0.08, head_length=0.05, 
+                         fc='green', ec='green', alpha=0.7, width=0.02)  # Thicker arrows
         
         if network.center_idx is not None:
             ax1.scatter(positions[network.center_idx, 0], 
@@ -435,25 +461,25 @@ def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Netw
                        c='red', s=200, marker='*', label='Center node', zorder=5)
         ax1.set_xlabel('X Position')
         ax1.set_ylabel('Y Position')
-        ax1.set_title(f'{title} - Positions and Displacement Vectors')
+        ax1.set_title(f'{title} - Relative Motion Vectors (amplified {amplification_factor}x)')
         ax1.legend()
         ax1.grid(True)
         ax1.axis('equal')
         
-        # Plot displacement magnitudes
+        # Plot relative displacement magnitudes
         non_center_mask = np.ones(len(positions), dtype=bool)
         if network.center_idx is not None:
             non_center_mask[network.center_idx] = False
         
-        displacement_magnitudes = np.linalg.norm(displacements[non_center_mask], axis=1)
+        relative_displacement_magnitudes = np.linalg.norm(relative_displacements[non_center_mask], axis=1)
         scatter = ax2.scatter(positions[non_center_mask, 0], 
                             positions[non_center_mask, 1],
-                            c=displacement_magnitudes, 
+                            c=relative_displacement_magnitudes, 
                             s=100, cmap='viridis')
-        plt.colorbar(scatter, ax=ax2, label='Displacement Magnitude')
+        plt.colorbar(scatter, ax=ax2, label='Relative Displacement Magnitude')
         ax2.set_xlabel('X Position')
         ax2.set_ylabel('Y Position')
-        ax2.set_title('Displacement Magnitudes of Non-Central Masses')
+        ax2.set_title('Relative Displacement Magnitudes of Non-Central Masses')
         ax2.grid(True)
         ax2.axis('equal')
     
