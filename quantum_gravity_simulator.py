@@ -15,7 +15,8 @@ class MassSpringNetwork:
     """Base class for mass-spring network simulation."""
     
     def __init__(self, mass: float = 1.0, spring_constant: float = 1.0, 
-                 damping: float = 0.1, dt: float = 0.01, temperature: float = 1.0):
+                 damping: float = 0.1, dt: float = 0.01, temperature: float = 1.0,
+                 rest_length: float = 1.0):
         """
         Initialize the mass-spring network.
         
@@ -25,12 +26,14 @@ class MassSpringNetwork:
             damping: Damping coefficient
             dt: Time step for simulation
             temperature: Temperature for Brownian motion
+            rest_length: Equilibrium length of springs (default: 1.0)
         """
         self.mass = mass
         self.k = spring_constant
         self.damping = damping
         self.dt = dt
         self.temperature = temperature
+        self.rest_length = rest_length
         
         self.positions = None
         self.velocities = None
@@ -38,6 +41,8 @@ class MassSpringNetwork:
         self.center_idx = None
         self.displacement_history = []
         self.initial_positions = None  # Store initial positions
+        self.radial_displacement_history = []  # Track migration toward center
+        self.neighbor_distance_history = []  # Track neighbor distances over time
         
     def compute_forces(self) -> np.ndarray:
         """
@@ -46,13 +51,16 @@ class MassSpringNetwork:
         For 2D networks with periodic boundaries, uses periodic_vector() to calculate
         the minimum displacement considering wrapping. For 1D networks or 2D networks
         without periodic boundaries, uses direct position differences.
+        
+        Springs now use Hooke's law with equilibrium rest length:
+        F = -k * (distance - rest_length)
         """
         forces = np.zeros_like(self.positions)
         
         # Check if this network has periodic boundary support
         has_periodic = hasattr(self, 'periodic_vector')
         
-        # Spring forces
+        # Spring forces with equilibrium position
         for i, j in self.connections:
             if has_periodic:
                 # Use periodic boundary conditions for distance calculation
@@ -63,7 +71,8 @@ class MassSpringNetwork:
             
             distance = np.linalg.norm(displacement)
             if distance > 0:
-                force_magnitude = self.k * distance
+                # Hooke's law with rest length: F = -k(r - r0)
+                force_magnitude = self.k * (distance - self.rest_length)
                 force_direction = displacement / distance
                 force = force_magnitude * force_direction
                 forces[i] += force
@@ -103,6 +112,7 @@ class MassSpringNetwork:
     def track_displacements(self):
         """
         Track displacements of all masses from their initial positions.
+        Also tracks radial displacement toward center and neighbor distances.
         
         Note: This tracks all masses including the center node. Use get_displacements()
         to retrieve the final displacements.
@@ -114,6 +124,15 @@ class MassSpringNetwork:
             # Calculate displacement from initial position
             displacements = self.positions - self.displacement_history[0]
             self.displacement_history.append(displacements.copy())
+        
+        # Track radial displacement (migration toward center)
+        if self.center_idx is not None and self.initial_positions is not None:
+            radial_disp = self.compute_radial_displacement()
+            self.radial_displacement_history.append(radial_disp)
+            
+            # Track neighbor distances
+            neighbor_dist = self.compute_neighbor_distances()
+            self.neighbor_distance_history.append(neighbor_dist)
     
     def simulate(self, steps: int, show_progress: bool = True):
         """
@@ -124,6 +143,8 @@ class MassSpringNetwork:
             show_progress: Whether to show a progress bar
         """
         self.displacement_history = []
+        self.radial_displacement_history = []
+        self.neighbor_distance_history = []
         # Store initial positions before simulation
         if self.initial_positions is None:
             self.initial_positions = self.positions.copy()
@@ -166,6 +187,107 @@ class MassSpringNetwork:
         # Subtract mean to get relative displacements
         relative_displacements = displacements - mean_displacement
         return relative_displacements
+    
+    def compute_radial_displacement(self) -> float:
+        """
+        Compute mean displacement of non-central masses toward/away from the center node.
+        
+        Positive value means masses have moved toward the center (attraction).
+        Negative value means masses have moved away from the center (repulsion).
+        
+        Returns:
+            Mean radial displacement toward center (positive = attraction)
+        """
+        if self.center_idx is None or self.initial_positions is None:
+            return 0.0
+        
+        radial_disps = []
+        center_pos_current = self.positions[self.center_idx]
+        center_pos_initial = self.initial_positions[self.center_idx]
+        
+        # Check if this network has periodic boundary support
+        has_periodic = hasattr(self, 'periodic_vector')
+        
+        for i in range(len(self.positions)):
+            if i == self.center_idx:
+                continue
+            
+            # Calculate distance from mass i to center (current and initial)
+            if has_periodic:
+                # Use periodic boundaries for distance calculation
+                r_current = self.periodic_vector(self.positions[i], center_pos_current)
+                r_initial = self.periodic_vector(self.initial_positions[i], center_pos_initial)
+            else:
+                # Direct distance without periodic boundaries
+                r_current = center_pos_current - self.positions[i]
+                r_initial = center_pos_initial - self.initial_positions[i]
+            
+            dist_current = np.linalg.norm(r_current)
+            dist_initial = np.linalg.norm(r_initial)
+            
+            # Positive radial_disp means moved toward center
+            radial_disp = dist_initial - dist_current
+            radial_disps.append(radial_disp)
+        
+        return np.mean(radial_disps) if radial_disps else 0.0
+    
+    def compute_neighbor_distances(self) -> float:
+        """
+        Compute mean distance from center node to its immediate neighbors.
+        
+        This measures if the neighbors maintain their equilibrium spacing
+        or if they're drawn closer/pushed away from the center oscillator.
+        
+        Returns:
+            Mean distance to center node's neighbors
+        """
+        if self.center_idx is None:
+            return self.rest_length
+        
+        # Find neighbors of center node (connected via springs)
+        neighbor_indices = []
+        for i, j in self.connections:
+            if i == self.center_idx:
+                neighbor_indices.append(j)
+            elif j == self.center_idx:
+                neighbor_indices.append(i)
+        
+        if not neighbor_indices:
+            return self.rest_length
+        
+        # Check if this network has periodic boundary support
+        has_periodic = hasattr(self, 'periodic_vector')
+        
+        # Compute distances
+        distances = []
+        center_pos = self.positions[self.center_idx]
+        for neighbor_idx in neighbor_indices:
+            if has_periodic:
+                r_vec = self.periodic_vector(self.positions[neighbor_idx], center_pos)
+            else:
+                r_vec = center_pos - self.positions[neighbor_idx]
+            dist = np.linalg.norm(r_vec)
+            distances.append(dist)
+        
+        return np.mean(distances) if distances else self.rest_length
+    
+    def get_radial_displacement_history(self) -> np.ndarray:
+        """
+        Get history of radial displacements over time.
+        
+        Returns:
+            Array of mean radial displacements at each tracked time step
+        """
+        return np.array(self.radial_displacement_history) if self.radial_displacement_history else np.array([])
+    
+    def get_neighbor_distance_history(self) -> np.ndarray:
+        """
+        Get history of neighbor distances over time.
+        
+        Returns:
+            Array of mean neighbor distances at each tracked time step
+        """
+        return np.array(self.neighbor_distance_history) if self.neighbor_distance_history else np.array([])
 
 
 class Network1D(MassSpringNetwork):
@@ -506,6 +628,7 @@ def print_results(network: MassSpringNetwork):
     print(f"  - Spring constant: {network.k}")
     print(f"  - Temperature: {network.temperature}")
     print(f"  - Mass: {network.mass}")
+    print(f"  - Rest length: {network.rest_length}")
     
     print(f"\nFinal Positions:")
     for i, pos in enumerate(positions):
@@ -530,4 +653,72 @@ def print_results(network: MassSpringNetwork):
     print(f"  - Max: {np.max(displacement_mags):.4f}")
     print(f"  - Min: {np.min(displacement_mags):.4f}")
     
+    # Radial displacement statistics
+    radial_history = network.get_radial_displacement_history()
+    if len(radial_history) > 0:
+        HISTORY_TAIL_FRACTION = 0.2  # Analyze last 20% of simulation
+        tail_start = -max(1, int(len(radial_history) * HISTORY_TAIL_FRACTION))
+        print(f"\nRadial Displacement (Migration toward center):")
+        print(f"  - Final: {radial_history[-1]:.6f}")
+        print(f"  - Mean (last 20%): {np.mean(radial_history[tail_start:]):.6f}")
+        print(f"  - (Positive = attraction, Negative = repulsion)")
+    
+    # Neighbor distance statistics
+    neighbor_history = network.get_neighbor_distance_history()
+    if len(neighbor_history) > 0:
+        tail_start = -max(1, int(len(neighbor_history) * HISTORY_TAIL_FRACTION))
+        print(f"\nNeighbor Distances to Center:")
+        print(f"  - Final: {neighbor_history[-1]:.4f}")
+        print(f"  - Mean (last 20%): {np.mean(neighbor_history[tail_start:]):.4f}")
+        print(f"  - Rest length: {network.rest_length:.4f}")
+    
     print("="*60 + "\n")
+
+
+def visualize_migration(network: MassSpringNetwork, title: str = "Migration Analysis"):
+    """
+    Visualize the migration behavior showing radial displacement and neighbor distances over time.
+    
+    Args:
+        network: The network to visualize
+        title: Title for the plot
+    """
+    radial_history = network.get_radial_displacement_history()
+    neighbor_history = network.get_neighbor_distance_history()
+    
+    if len(radial_history) == 0 or len(neighbor_history) == 0:
+        print("Warning: No history data to visualize. Run a simulation first.")
+        return None
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+    
+    # Convert to time steps
+    time_steps = np.arange(len(radial_history))
+    
+    # Plot radial displacement over time
+    ax1.plot(time_steps, radial_history, 'b-', linewidth=2, label='Radial displacement')
+    ax1.axhline(y=0, color='k', linestyle='--', alpha=0.5, linewidth=2, label='No displacement')
+    ax1.fill_between(time_steps, 0, radial_history,
+                     where=(np.array(radial_history) > 0),
+                     color='green', alpha=0.3, label='Attraction')
+    ax1.fill_between(time_steps, 0, radial_history,
+                     where=(np.array(radial_history) < 0),
+                     color='red', alpha=0.3, label='Repulsion')
+    ax1.set_xlabel('Time Step', fontsize=12)
+    ax1.set_ylabel('Mean Radial Displacement', fontsize=12)
+    ax1.set_title(f'{title} - Migration Toward/Away from Center', fontsize=13)
+    ax1.legend(fontsize=10)
+    ax1.grid(True, alpha=0.3)
+    
+    # Plot neighbor distances over time
+    ax2.plot(time_steps, neighbor_history, 'r-', linewidth=2, label='Mean neighbor distance')
+    ax2.axhline(y=network.rest_length, color='k', linestyle='--',
+               linewidth=2, alpha=0.5, label=f'Equilibrium ({network.rest_length:.2f})')
+    ax2.set_xlabel('Time Step', fontsize=12)
+    ax2.set_ylabel('Distance to Center', fontsize=12)
+    ax2.set_title('Neighbor Distances to Center Oscillator', fontsize=13)
+    ax2.legend(fontsize=10)
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    return fig

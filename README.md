@@ -8,7 +8,11 @@ A Python package to simulate quantum gravity using mass-spring networks. This si
 - **2D Square Lattice**: Square grid configuration with 4-neighbor connectivity and **periodic boundary conditions**
 - **2D Triangular Lattice**: Triangular grid configuration with 6-neighbor connectivity and **periodic boundary conditions**
 - **Periodic Boundary Conditions**: 2D lattices wrap around at edges, eliminating boundary effects and preserving translational symmetry
+- **Equilibrium Spring Forces**: Springs use Hooke's law with rest length for stable equilibrium positions
 - **Brownian Motion**: Center node undergoes temperature-driven random walk
+- **Entropy-Driven Migration Tracking**: Measures how non-central masses migrate toward/away from the entropy source
+- **Radial Displacement Analysis**: Tracks migration toward center oscillator over time
+- **Neighbor Distance Tracking**: Monitors spacing between center and neighboring masses
 - **Displacement Tracking**: Tracks and reports displacements of all non-central masses
 - **Interactive Configuration**: Configure simulation parameters interactively with sensible defaults
 - **Progress Bar**: Real-time progress tracking during simulation execution
@@ -16,6 +20,7 @@ A Python package to simulate quantum gravity using mass-spring networks. This si
   - Shows both initial and final positions
   - Displays displacement vectors as arrows attached to each point
   - Visualizes displacement magnitudes with color-coded heatmaps
+  - Migration analysis plots showing attraction/repulsion over time
 
 ## Installation
 
@@ -32,7 +37,22 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-### Interactive Mode (Default)
+### Entropy-Driven Migration Demo (Recommended)
+
+Run the migration demonstration to see how coupled oscillators respond to a center node undergoing Brownian motion:
+
+```bash
+python demo_migration.py
+```
+
+This will:
+1. Run two simulations: baseline (no Brownian) vs. noisy (with Brownian motion)
+2. Compare radial displacement (migration toward center)
+3. Analyze neighbor distances over time
+4. Generate comprehensive comparison visualizations
+5. Demonstrate entropy-driven migration in action
+
+### Interactive Mode
 
 Run the example script in interactive mode:
 
@@ -135,17 +155,23 @@ The simulator generates comprehensive visualizations showing:
 4. **Center Node**: Red star marking the thermally-excited center node
 5. **Network Connections**: Spring connections shown in both initial (faint gray) and final (blue) configurations
 6. **Relative Displacement Heatmap**: Color-coded visualization of relative displacement magnitudes
+7. **Migration Analysis Plots**: Time-series showing radial displacement and neighbor distances over time
 
 ## Physics Model
 
 The simulator implements a classical mass-spring system with the following physics:
 
-### Spring Forces
-Each connection between masses i and j exerts a force:
+### Spring Forces (with Equilibrium)
+Each connection between masses i and j exerts a Hookean restoring force:
 ```
-F = k * |r_j - r_i|
+F = -k * (|r_j - r_i| - r0)
 ```
-where k is the spring constant and r is the position vector.
+where:
+- k is the spring constant
+- r is the position vector
+- r0 is the equilibrium rest length (default: 1.0)
+
+This ensures springs have a stable equilibrium position and don't collapse indefinitely.
 
 ### Periodic Boundary Conditions (2D Lattices)
 For 2D square and triangular lattices, periodic boundary conditions are applied:
@@ -183,6 +209,33 @@ x(t+dt) = x(t) + v(t) * dt
 
 The system exhibits **entropy-driven migration**: as the center element undergoes Brownian motion, other masses naturally migrate towards it through spring force interactions. This emergent behavior demonstrates how entropy maximization drives spatial organization in coupled oscillator systems.
 
+### Migration Tracking and Analysis
+
+The simulator now includes comprehensive tools to measure and analyze entropy-driven migration:
+
+#### Radial Displacement
+Measures the mean displacement of non-central masses toward/away from the center oscillator:
+```
+radial_displacement = distance_initial - distance_current
+```
+- **Positive values**: Masses have moved toward the center (attraction)
+- **Negative values**: Masses have moved away from the center (repulsion)
+- Tracked over time to show migration dynamics
+
+#### Neighbor Distance Tracking
+Monitors the mean distance from the center oscillator to its immediate neighbors:
+- Compares actual distances to equilibrium rest length
+- Reveals if coupling causes neighbors to cluster or disperse
+- Uses periodic boundary conditions for accurate 2D measurements
+
+#### Comparison Framework
+The simulator can compare baseline (no Brownian motion) vs. noisy (with Brownian motion) systems:
+- Quantifies the effect of entropy source on system behavior
+- Statistical analysis of radial displacement distributions
+- Visualization of attraction/repulsion patterns over time
+
+See `demo_migration.py` for a complete demonstration of these analysis capabilities.
+
 ### Relative Motion Visualization
 The visualizations display **relative motion** rather than absolute motion:
 - **Absolute displacement**: The raw change in position from initial to final state
@@ -202,6 +255,7 @@ The visualizations display **relative motion** rather than absolute motion:
 ### Physics Parameters
 - **mass**: Mass of each node (default: 1.0)
 - **spring_constant**: Stiffness of spring connections (default: 1.0)
+- **rest_length**: Equilibrium length of springs (default: 1.0)
 - **damping**: Damping coefficient (default: 0.1)
 - **dt**: Time step for integration (default: 0.01)
 - **temperature**: Temperature for Brownian motion (default: 1.0)
