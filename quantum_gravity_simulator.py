@@ -363,7 +363,8 @@ class Network2DTriangular(MassSpringNetwork):
         return dx
 
 
-def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Network"):
+def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Network", 
+                     amplification_factor: float = 5.0):
     """
     Visualize the final state of the network with relative displacement vectors.
     Shows both initial and displaced positions with motion relative to the grid.
@@ -371,6 +372,7 @@ def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Netw
     Args:
         network: The network to visualize
         title: Title for the plot
+        amplification_factor: Factor to amplify displacement vectors for visibility (default: 5.0)
     """
     positions = network.get_final_positions()
     displacements = network.get_displacements()
@@ -388,7 +390,6 @@ def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Netw
                    c='blue', s=100, label='Final positions', marker='o')
         
         # Draw relative displacement vectors (amplified and thicker)
-        amplification_factor = 5.0  # Amplify vectors for visibility
         for i in range(len(positions)):
             if i != network.center_idx:  # Skip center node for clarity
                 # Use relative displacement instead of absolute
@@ -423,9 +424,6 @@ def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Netw
     else:
         # 2D visualization
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
-        
-        # Amplification factor for visibility
-        amplification_factor = 5.0
         
         # Plot connections at initial positions (faint)
         for i, j in network.connections:
