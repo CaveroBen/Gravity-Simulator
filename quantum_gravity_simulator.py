@@ -745,6 +745,7 @@ def run_multiple_simulations(network_class, network_params: dict,
             - 'std_displacements': Standard deviation of displacements
             - 'all_final_positions': List of final positions from each simulation
             - 'all_displacements': List of displacements from each simulation
+            - 'n_simulations': Number of simulations run
     """
     all_final_positions = []
     all_displacements = []
@@ -786,7 +787,7 @@ def run_multiple_simulations(network_class, network_params: dict,
     }
 
 
-def visualize_averaged_results(results: dict, network_params: dict, 
+def visualize_averaged_results(results: dict, network_class, network_params: dict, 
                               title: str = "Averaged Simulation Results",
                               amplification_factor: float = 5.0):
     """
@@ -794,7 +795,8 @@ def visualize_averaged_results(results: dict, network_params: dict,
     
     Args:
         results: Dictionary returned by run_multiple_simulations
-        network_params: Dictionary of network parameters (to determine center_idx and connections)
+        network_class: The network class used (Network1D, Network2DSquare, or Network2DTriangular)
+        network_params: Dictionary of network parameters
         title: Title for the plot
         amplification_factor: Factor to amplify displacement vectors for visibility
     
@@ -809,18 +811,8 @@ def visualize_averaged_results(results: dict, network_params: dict,
     # Determine network type from initial positions shape
     is_1d = initial_positions.shape[1] == 1
     
-    # We need to create a temporary network to get center_idx and connections
-    # This is not ideal but necessary for visualization
-    # Determine which class to use based on network_params
-    if 'n_masses' in network_params:
-        temp_network = Network1D(**network_params)
-    elif 'size' in network_params:
-        # Check if we need triangular or square based on presence of connections count
-        # Create both and see which matches - this is a bit hacky
-        temp_network = Network2DSquare(**network_params)
-    else:
-        raise ValueError("Cannot determine network type from parameters")
-    
+    # Create a temporary network to get center_idx and connections
+    temp_network = network_class(**network_params)
     center_idx = temp_network.center_idx
     connections = temp_network.connections
     

@@ -196,6 +196,7 @@ results = run_multiple_simulations(
 # Visualize averaged results
 fig = visualize_averaged_results(
     results=results,
+    network_class=Network2DSquare,
     network_params=network_params,
     title="Averaged Simulation Results"
 )

@@ -479,6 +479,7 @@ def test_visualization_averaged_results():
     # Test that visualization doesn't crash
     fig = visualize_averaged_results(
         results=results,
+        network_class=Network1D,
         network_params=network_params,
         title="Test Visualization"
     )

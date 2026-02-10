@@ -48,6 +48,7 @@ def demo_1d_averaging():
     print("\nGenerating averaged visualization...")
     fig = visualize_averaged_results(
         results=results,
+        network_class=Network1D,
         network_params=network_params,
         title="1D Mass-Spring Chain - Averaged Over 10 Simulations"
     )
@@ -99,6 +100,7 @@ def demo_2d_square_averaging():
     print("\nGenerating averaged visualization...")
     fig = visualize_averaged_results(
         results=results,
+        network_class=Network2DSquare,
         network_params=network_params,
         title="2D Square Lattice - Averaged Over 10 Simulations"
     )
@@ -150,6 +152,7 @@ def demo_2d_triangular_averaging():
     print("\nGenerating averaged visualization...")
     fig = visualize_averaged_results(
         results=results,
+        network_class=Network2DTriangular,
         network_params=network_params,
         title="2D Triangular Lattice - Averaged Over 10 Simulations"
     )
