@@ -9,7 +9,12 @@ A Python package to simulate quantum gravity using mass-spring networks. This si
 - **2D Triangular Lattice**: Triangular grid configuration with 6-neighbor connectivity
 - **Brownian Motion**: Center node undergoes temperature-driven random walk
 - **Displacement Tracking**: Tracks and reports displacements of all non-central masses
-- **Visualization**: Generates plots showing final positions and displacement magnitudes
+- **Interactive Configuration**: Configure simulation parameters interactively with sensible defaults
+- **Progress Bar**: Real-time progress tracking during simulation execution
+- **Enhanced Visualization**: 
+  - Shows both initial and final positions
+  - Displays displacement vectors as arrows attached to each point
+  - Visualizes displacement magnitudes with color-coded heatmaps
 
 ## Installation
 
@@ -26,16 +31,35 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-Run the example script to see all three configurations in action:
+### Interactive Mode (Default)
+
+Run the example script in interactive mode:
 
 ```bash
 python example.py
 ```
 
+You'll be prompted to configure:
+- Network type (1d/square/triangular)
+- Array size
+- Simulation time steps
+- Thermal excitation (temperature)
+- Spring constant
+
+Simply press Enter to accept the default value for each parameter.
+
+### Batch Mode
+
+To run all three example configurations automatically:
+
+```bash
+echo "batch" | python example.py
+```
+
 This will:
 - Simulate a 1D chain, 2D square lattice, and 2D triangular lattice
-- Print detailed results for each simulation
-- Generate visualization PNG files
+- Show progress bars for each simulation
+- Generate visualization PNG files with displacement vectors
 
 ## Usage
 
@@ -54,13 +78,10 @@ network = Network1D(
     temperature=2.0
 )
 
-# Run simulation
-network.simulate(steps=1000)
+# Run simulation with progress bar
+network.simulate(steps=1000, show_progress=True)
 
-# Print results
-print_results(network)
-
-# Visualize
+# Visualize with displacement vectors
 visualize_network(network, "1D Mass-Spring Chain")
 ```
 
@@ -79,7 +100,7 @@ network = Network2DSquare(
     temperature=1.5
 )
 
-network.simulate(steps=1500)
+network.simulate(steps=1500, show_progress=True)
 ```
 
 ### 2D Triangular Lattice
@@ -97,8 +118,19 @@ network = Network2DTriangular(
     temperature=1.5
 )
 
-network.simulate(steps=1500)
+network.simulate(steps=1500, show_progress=True)
 ```
+
+## Visualization Features
+
+The simulator generates comprehensive visualizations showing:
+
+1. **Initial Positions**: Light blue circles showing where masses started
+2. **Final Positions**: Blue circles showing where masses ended up
+3. **Displacement Vectors**: Green arrows from initial to final positions
+4. **Center Node**: Red star marking the thermally-excited center node
+5. **Network Connections**: Spring connections shown in both initial (faint gray) and final (blue) configurations
+6. **Displacement Heatmap**: Color-coded visualization of displacement magnitudes
 
 ## Physics Model
 
@@ -134,27 +166,37 @@ x(t+dt) = x(t) + v(t) * dt
 
 ## Parameters
 
+### Network Configuration
+- **n_masses** (1D): Number of masses in the chain
+- **size** (2D): Size of the lattice (creates size × size grid)
+
+### Physics Parameters
 - **mass**: Mass of each node (default: 1.0)
 - **spring_constant**: Stiffness of spring connections (default: 1.0)
 - **damping**: Damping coefficient (default: 0.1)
 - **dt**: Time step for integration (default: 0.01)
 - **temperature**: Temperature for Brownian motion (default: 1.0)
 
+### Simulation Parameters
+- **steps**: Number of simulation time steps to run
+- **show_progress**: Whether to display a progress bar (default: True)
+
 ## Output
 
 The simulator provides:
 
-1. **Final Positions**: Coordinates of all masses after simulation
-2. **Displacements**: Change in position for each non-central mass
-3. **Statistics**: Mean, standard deviation, min, and max displacement magnitudes
+1. **Initial Positions**: Starting coordinates of all masses
+2. **Final Positions**: Coordinates of all masses after simulation
+3. **Displacements**: Change in position for each mass with displacement vectors
 4. **Visualizations**: 
-   - For 1D: Position plot and displacement bar chart
-   - For 2D: Network layout with connections and displacement heatmap
+   - For 1D: Position plot with displacement vectors and displacement bar chart
+   - For 2D: Network layout showing initial/final positions, displacement vectors, and displacement magnitude heatmap
 
 ## Dependencies
 
 - NumPy >= 1.20.0
 - Matplotlib >= 3.3.0
+- tqdm >= 4.62.0 (for progress bars)
 
 ## Theory
 

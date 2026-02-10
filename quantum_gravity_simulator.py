@@ -8,6 +8,7 @@ Supports 1D and 2D (square/triangular) configurations with Brownian motion.
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Tuple, List, Optional
+from tqdm import tqdm
 
 
 class MassSpringNetwork:
@@ -36,6 +37,7 @@ class MassSpringNetwork:
         self.connections = []
         self.center_idx = None
         self.displacement_history = []
+        self.initial_positions = None  # Store initial positions
         
     def compute_forces(self) -> np.ndarray:
         """
@@ -105,16 +107,28 @@ class MassSpringNetwork:
             displacements = self.positions - self.displacement_history[0]
             self.displacement_history.append(displacements.copy())
     
-    def simulate(self, steps: int):
+    def simulate(self, steps: int, show_progress: bool = True):
         """
         Run the simulation for a given number of steps.
         
         Args:
             steps: Number of simulation steps
+            show_progress: Whether to show a progress bar
         """
         self.displacement_history = []
-        for _ in range(steps):
+        # Store initial positions before simulation
+        if self.initial_positions is None:
+            self.initial_positions = self.positions.copy()
+        
+        iterator = tqdm(range(steps), desc="Simulating") if show_progress else range(steps)
+        for _ in iterator:
             self.step()
+    
+    def get_initial_positions(self) -> np.ndarray:
+        """Get initial positions of all masses."""
+        if self.initial_positions is not None:
+            return self.initial_positions.copy()
+        return self.positions.copy()
     
     def get_final_positions(self) -> np.ndarray:
         """Get final positions of all masses."""
@@ -158,6 +172,9 @@ class Network1D(MassSpringNetwork):
         
         # Center node is the middle one
         self.center_idx = self.n_masses // 2
+        
+        # Store initial positions
+        self.initial_positions = self.positions.copy()
 
 
 class Network2DSquare(MassSpringNetwork):
@@ -208,6 +225,9 @@ class Network2DSquare(MassSpringNetwork):
         # Center node
         center_i, center_j = self.size // 2, self.size // 2
         self.center_idx = self.idx_map[(center_i, center_j)]
+        
+        # Store initial positions
+        self.initial_positions = self.positions.copy()
 
 
 class Network2DTriangular(MassSpringNetwork):
@@ -275,11 +295,15 @@ class Network2DTriangular(MassSpringNetwork):
         # Center node
         center_i, center_j = self.size // 2, self.size // 2
         self.center_idx = self.idx_map[(center_i, center_j)]
+        
+        # Store initial positions
+        self.initial_positions = self.positions.copy()
 
 
 def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Network"):
     """
-    Visualize the final state of the network.
+    Visualize the final state of the network with displacement vectors.
+    Shows both initial and displaced positions.
     
     Args:
         network: The network to visualize
@@ -287,18 +311,31 @@ def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Netw
     """
     positions = network.get_final_positions()
     displacements = network.get_displacements()
+    initial_positions = network.get_initial_positions()
     
     if positions.shape[1] == 1:
         # 1D visualization
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
         
-        # Plot positions
-        ax1.scatter(positions[:, 0], np.zeros(len(positions)), c='blue', s=100)
+        # Plot initial and final positions with displacement vectors
+        ax1.scatter(initial_positions[:, 0], np.zeros(len(initial_positions)), 
+                   c='lightblue', s=100, alpha=0.5, label='Initial positions', marker='o')
+        ax1.scatter(positions[:, 0], np.zeros(len(positions)), 
+                   c='blue', s=100, label='Final positions', marker='o')
+        
+        # Draw displacement vectors
+        for i in range(len(positions)):
+            if i != network.center_idx:  # Skip center node for clarity
+                ax1.arrow(initial_positions[i, 0], 0, 
+                         displacements[i, 0], 0,
+                         head_width=0.1, head_length=0.05, fc='green', ec='green', 
+                         alpha=0.7, width=0.02)
+        
         if network.center_idx is not None:
             ax1.scatter(positions[network.center_idx, 0], 0, 
-                       c='red', s=200, marker='*', label='Center node')
+                       c='red', s=200, marker='*', label='Center node', zorder=5)
         ax1.set_xlabel('Position')
-        ax1.set_title(f'{title} - Final Positions')
+        ax1.set_title(f'{title} - Positions and Displacement Vectors')
         ax1.legend()
         ax1.grid(True)
         
@@ -320,20 +357,41 @@ def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Netw
         # 2D visualization
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
         
-        # Plot positions with connections
+        # Plot connections at initial positions (faint)
+        for i, j in network.connections:
+            pos_i, pos_j = initial_positions[i], initial_positions[j]
+            ax1.plot([pos_i[0], pos_j[0]], [pos_i[1], pos_j[1]], 
+                    'gray', alpha=0.15, linewidth=0.5)
+        
+        # Plot connections at final positions
         for i, j in network.connections:
             pos_i, pos_j = positions[i], positions[j]
             ax1.plot([pos_i[0], pos_j[0]], [pos_i[1], pos_j[1]], 
                     'b-', alpha=0.3, linewidth=0.5)
         
-        ax1.scatter(positions[:, 0], positions[:, 1], c='blue', s=50)
+        # Plot initial positions (faint)
+        ax1.scatter(initial_positions[:, 0], initial_positions[:, 1], 
+                   c='lightblue', s=50, alpha=0.4, label='Initial positions')
+        
+        # Plot final positions
+        ax1.scatter(positions[:, 0], positions[:, 1], 
+                   c='blue', s=50, label='Final positions')
+        
+        # Draw displacement vectors for non-center nodes (center node vector omitted for clarity)
+        for i in range(len(positions)):
+            if i != network.center_idx:
+                ax1.arrow(initial_positions[i, 0], initial_positions[i, 1],
+                         displacements[i, 0], displacements[i, 1],
+                         head_width=0.05, head_length=0.03, 
+                         fc='green', ec='green', alpha=0.6, width=0.01)
+        
         if network.center_idx is not None:
             ax1.scatter(positions[network.center_idx, 0], 
                        positions[network.center_idx, 1],
-                       c='red', s=200, marker='*', label='Center node')
+                       c='red', s=200, marker='*', label='Center node', zorder=5)
         ax1.set_xlabel('X Position')
         ax1.set_ylabel('Y Position')
-        ax1.set_title(f'{title} - Final Positions')
+        ax1.set_title(f'{title} - Positions and Displacement Vectors')
         ax1.legend()
         ax1.grid(True)
         ax1.axis('equal')
