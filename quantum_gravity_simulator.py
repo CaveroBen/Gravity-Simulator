@@ -1,0 +1,393 @@
+"""
+Quantum Gravity Simulator
+
+A package to simulate quantum gravity using mass-spring networks.
+Supports 1D and 2D (square/triangular) configurations with Brownian motion.
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from typing import Tuple, List, Optional
+
+
+class MassSpringNetwork:
+    """Base class for mass-spring network simulation."""
+    
+    def __init__(self, mass: float = 1.0, spring_constant: float = 1.0, 
+                 damping: float = 0.1, dt: float = 0.01, temperature: float = 1.0):
+        """
+        Initialize the mass-spring network.
+        
+        Args:
+            mass: Mass of each node
+            spring_constant: Spring constant for connections
+            damping: Damping coefficient
+            dt: Time step for simulation
+            temperature: Temperature for Brownian motion
+        """
+        self.mass = mass
+        self.k = spring_constant
+        self.damping = damping
+        self.dt = dt
+        self.temperature = temperature
+        
+        self.positions = None
+        self.velocities = None
+        self.connections = []
+        self.center_idx = None
+        self.displacement_history = []
+        
+    def compute_forces(self) -> np.ndarray:
+        """Compute forces on all masses from spring connections."""
+        forces = np.zeros_like(self.positions)
+        
+        # Spring forces
+        for i, j in self.connections:
+            displacement = self.positions[j] - self.positions[i]
+            distance = np.linalg.norm(displacement)
+            if distance > 0:
+                force_magnitude = self.k * distance
+                force_direction = displacement / distance
+                force = force_magnitude * force_direction
+                forces[i] += force
+                forces[j] -= force
+        
+        # Damping forces
+        forces -= self.damping * self.velocities
+        
+        return forces
+    
+    def apply_brownian_motion(self):
+        """Apply Brownian random walk to the center node."""
+        if self.center_idx is not None:
+            # Brownian motion: random displacement proportional to sqrt(temperature)
+            ndim = self.positions.shape[1]
+            random_force = np.random.randn(ndim) * np.sqrt(self.temperature)
+            self.velocities[self.center_idx] += random_force * self.dt / self.mass
+    
+    def step(self):
+        """Perform one simulation step."""
+        # Compute forces
+        forces = self.compute_forces()
+        
+        # Update velocities (except for center node which gets Brownian motion)
+        accelerations = forces / self.mass
+        self.velocities += accelerations * self.dt
+        
+        # Apply Brownian motion to center node
+        self.apply_brownian_motion()
+        
+        # Update positions
+        self.positions += self.velocities * self.dt
+        
+        # Track displacements of non-central masses
+        self.track_displacements()
+    
+    def track_displacements(self):
+        """Track displacements of all non-central masses."""
+        if len(self.displacement_history) == 0:
+            # Initialize with current positions as reference
+            self.displacement_history.append(self.positions.copy())
+        else:
+            # Calculate displacement from initial position
+            displacements = self.positions - self.displacement_history[0]
+            self.displacement_history.append(displacements.copy())
+    
+    def simulate(self, steps: int):
+        """
+        Run the simulation for a given number of steps.
+        
+        Args:
+            steps: Number of simulation steps
+        """
+        self.displacement_history = []
+        for _ in range(steps):
+            self.step()
+    
+    def get_final_positions(self) -> np.ndarray:
+        """Get final positions of all masses."""
+        return self.positions.copy()
+    
+    def get_displacements(self) -> np.ndarray:
+        """Get displacements of all non-central masses."""
+        if len(self.displacement_history) > 1:
+            return self.displacement_history[-1]
+        return np.zeros_like(self.positions)
+
+
+class Network1D(MassSpringNetwork):
+    """1D mass-spring network."""
+    
+    def __init__(self, n_masses: int, **kwargs):
+        """
+        Initialize 1D network.
+        
+        Args:
+            n_masses: Number of masses in the chain
+            **kwargs: Additional parameters for MassSpringNetwork
+        """
+        super().__init__(**kwargs)
+        self.n_masses = n_masses
+        self._initialize_network()
+    
+    def _initialize_network(self):
+        """Initialize the 1D network structure."""
+        # Create masses along a line
+        self.positions = np.zeros((self.n_masses, 1))
+        for i in range(self.n_masses):
+            self.positions[i, 0] = i * 1.0
+        
+        self.velocities = np.zeros_like(self.positions)
+        
+        # Connect adjacent masses
+        self.connections = []
+        for i in range(self.n_masses - 1):
+            self.connections.append((i, i + 1))
+        
+        # Center node is the middle one
+        self.center_idx = self.n_masses // 2
+
+
+class Network2DSquare(MassSpringNetwork):
+    """2D mass-spring network with square lattice."""
+    
+    def __init__(self, size: int, **kwargs):
+        """
+        Initialize 2D square lattice network.
+        
+        Args:
+            size: Size of the square lattice (size x size)
+            **kwargs: Additional parameters for MassSpringNetwork
+        """
+        super().__init__(**kwargs)
+        self.size = size
+        self.n_masses = size * size
+        self._initialize_network()
+    
+    def _initialize_network(self):
+        """Initialize the 2D square lattice structure."""
+        # Create masses in a grid
+        self.positions = np.zeros((self.n_masses, 2))
+        self.idx_map = {}
+        
+        idx = 0
+        for i in range(self.size):
+            for j in range(self.size):
+                self.positions[idx] = [i * 1.0, j * 1.0]
+                self.idx_map[(i, j)] = idx
+                idx += 1
+        
+        self.velocities = np.zeros_like(self.positions)
+        
+        # Connect adjacent masses (4 neighbors)
+        self.connections = []
+        for i in range(self.size):
+            for j in range(self.size):
+                idx1 = self.idx_map[(i, j)]
+                # Right neighbor
+                if j < self.size - 1:
+                    idx2 = self.idx_map[(i, j + 1)]
+                    self.connections.append((idx1, idx2))
+                # Bottom neighbor
+                if i < self.size - 1:
+                    idx2 = self.idx_map[(i + 1, j)]
+                    self.connections.append((idx1, idx2))
+        
+        # Center node
+        center_i, center_j = self.size // 2, self.size // 2
+        self.center_idx = self.idx_map[(center_i, center_j)]
+
+
+class Network2DTriangular(MassSpringNetwork):
+    """2D mass-spring network with triangular lattice."""
+    
+    def __init__(self, size: int, **kwargs):
+        """
+        Initialize 2D triangular lattice network.
+        
+        Args:
+            size: Size of the triangular lattice
+            **kwargs: Additional parameters for MassSpringNetwork
+        """
+        super().__init__(**kwargs)
+        self.size = size
+        self.n_masses = size * size
+        self._initialize_network()
+    
+    def _initialize_network(self):
+        """Initialize the 2D triangular lattice structure."""
+        # Create masses in a triangular grid
+        self.positions = np.zeros((self.n_masses, 2))
+        self.idx_map = {}
+        
+        idx = 0
+        for i in range(self.size):
+            for j in range(self.size):
+                # Offset every other row for triangular lattice
+                x = i * 1.0
+                y = j * 1.0 + (0.5 if i % 2 == 1 else 0.0)
+                self.positions[idx] = [x, y]
+                self.idx_map[(i, j)] = idx
+                idx += 1
+        
+        self.velocities = np.zeros_like(self.positions)
+        
+        # Connect adjacent masses (6 neighbors for triangular lattice)
+        self.connections = []
+        for i in range(self.size):
+            for j in range(self.size):
+                idx1 = self.idx_map[(i, j)]
+                
+                # Right neighbor
+                if j < self.size - 1:
+                    idx2 = self.idx_map[(i, j + 1)]
+                    self.connections.append((idx1, idx2))
+                
+                # Bottom neighbor
+                if i < self.size - 1:
+                    idx2 = self.idx_map[(i + 1, j)]
+                    self.connections.append((idx1, idx2))
+                
+                # Diagonal connections for triangular lattice
+                if i % 2 == 0:
+                    # Even rows: connect to bottom-left
+                    if i < self.size - 1 and j > 0:
+                        idx2 = self.idx_map[(i + 1, j - 1)]
+                        self.connections.append((idx1, idx2))
+                else:
+                    # Odd rows: connect to bottom-right
+                    if i < self.size - 1 and j < self.size - 1:
+                        idx2 = self.idx_map[(i + 1, j + 1)]
+                        self.connections.append((idx1, idx2))
+        
+        # Center node
+        center_i, center_j = self.size // 2, self.size // 2
+        self.center_idx = self.idx_map[(center_i, center_j)]
+
+
+def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Network"):
+    """
+    Visualize the final state of the network.
+    
+    Args:
+        network: The network to visualize
+        title: Title for the plot
+    """
+    positions = network.get_final_positions()
+    displacements = network.get_displacements()
+    
+    if positions.shape[1] == 1:
+        # 1D visualization
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+        
+        # Plot positions
+        ax1.scatter(positions[:, 0], np.zeros(len(positions)), c='blue', s=100)
+        if network.center_idx is not None:
+            ax1.scatter(positions[network.center_idx, 0], 0, 
+                       c='red', s=200, marker='*', label='Center node')
+        ax1.set_xlabel('Position')
+        ax1.set_title(f'{title} - Final Positions')
+        ax1.legend()
+        ax1.grid(True)
+        
+        # Plot displacements
+        non_center_mask = np.ones(len(positions), dtype=bool)
+        if network.center_idx is not None:
+            non_center_mask[network.center_idx] = False
+        
+        indices = np.arange(len(positions))
+        ax2.bar(indices[non_center_mask], 
+                displacements[non_center_mask, 0], 
+                color='green')
+        ax2.set_xlabel('Mass Index')
+        ax2.set_ylabel('Displacement')
+        ax2.set_title('Displacements of Non-Central Masses')
+        ax2.grid(True)
+        
+    else:
+        # 2D visualization
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
+        
+        # Plot positions with connections
+        for i, j in network.connections:
+            pos_i, pos_j = positions[i], positions[j]
+            ax1.plot([pos_i[0], pos_j[0]], [pos_i[1], pos_j[1]], 
+                    'b-', alpha=0.3, linewidth=0.5)
+        
+        ax1.scatter(positions[:, 0], positions[:, 1], c='blue', s=50)
+        if network.center_idx is not None:
+            ax1.scatter(positions[network.center_idx, 0], 
+                       positions[network.center_idx, 1],
+                       c='red', s=200, marker='*', label='Center node')
+        ax1.set_xlabel('X Position')
+        ax1.set_ylabel('Y Position')
+        ax1.set_title(f'{title} - Final Positions')
+        ax1.legend()
+        ax1.grid(True)
+        ax1.axis('equal')
+        
+        # Plot displacement magnitudes
+        non_center_mask = np.ones(len(positions), dtype=bool)
+        if network.center_idx is not None:
+            non_center_mask[network.center_idx] = False
+        
+        displacement_magnitudes = np.linalg.norm(displacements[non_center_mask], axis=1)
+        scatter = ax2.scatter(positions[non_center_mask, 0], 
+                            positions[non_center_mask, 1],
+                            c=displacement_magnitudes, 
+                            s=100, cmap='viridis')
+        plt.colorbar(scatter, ax=ax2, label='Displacement Magnitude')
+        ax2.set_xlabel('X Position')
+        ax2.set_ylabel('Y Position')
+        ax2.set_title('Displacement Magnitudes of Non-Central Masses')
+        ax2.grid(True)
+        ax2.axis('equal')
+    
+    plt.tight_layout()
+    return fig
+
+
+def print_results(network: MassSpringNetwork):
+    """
+    Print simulation results.
+    
+    Args:
+        network: The network to report results for
+    """
+    positions = network.get_final_positions()
+    displacements = network.get_displacements()
+    
+    print("\n" + "="*60)
+    print("QUANTUM GRAVITY SIMULATION RESULTS")
+    print("="*60)
+    
+    print(f"\nNetwork Configuration:")
+    print(f"  - Number of masses: {len(positions)}")
+    print(f"  - Spring constant: {network.k}")
+    print(f"  - Temperature: {network.temperature}")
+    print(f"  - Mass: {network.mass}")
+    
+    print(f"\nFinal Positions:")
+    for i, pos in enumerate(positions):
+        marker = " (CENTER)" if i == network.center_idx else ""
+        print(f"  Mass {i}: {pos}{marker}")
+    
+    print(f"\nDisplacements of Non-Central Masses:")
+    for i, disp in enumerate(displacements):
+        if i != network.center_idx:
+            mag = np.linalg.norm(disp)
+            print(f"  Mass {i}: {disp} (magnitude: {mag:.4f})")
+    
+    # Statistics
+    non_center_mask = np.ones(len(positions), dtype=bool)
+    if network.center_idx is not None:
+        non_center_mask[network.center_idx] = False
+    
+    displacement_mags = np.linalg.norm(displacements[non_center_mask], axis=1)
+    print(f"\nDisplacement Statistics:")
+    print(f"  - Mean: {np.mean(displacement_mags):.4f}")
+    print(f"  - Std Dev: {np.std(displacement_mags):.4f}")
+    print(f"  - Max: {np.max(displacement_mags):.4f}")
+    print(f"  - Min: {np.min(displacement_mags):.4f}")
+    
+    print("="*60 + "\n")
