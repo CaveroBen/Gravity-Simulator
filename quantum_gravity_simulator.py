@@ -38,10 +38,17 @@ class MassSpringNetwork:
         self.displacement_history = []
         
     def compute_forces(self) -> np.ndarray:
-        """Compute forces on all masses from spring connections."""
+        """
+        Compute forces on all masses from spring connections.
+        
+        Note: This implementation uses the initial configuration as the equilibrium.
+        The spring force is proportional to the displacement from initial positions,
+        which are stored implicitly in the connection distances.
+        """
         forces = np.zeros_like(self.positions)
         
-        # Spring forces
+        # Spring forces (using current distance as displacement from equilibrium)
+        # In this model, the initial configuration defines the rest lengths
         for i, j in self.connections:
             displacement = self.positions[j] - self.positions[i]
             distance = np.linalg.norm(displacement)
@@ -84,7 +91,12 @@ class MassSpringNetwork:
         self.track_displacements()
     
     def track_displacements(self):
-        """Track displacements of all non-central masses."""
+        """
+        Track displacements of all masses from their initial positions.
+        
+        Note: This tracks all masses including the center node. Use get_displacements()
+        to retrieve the final displacements.
+        """
         if len(self.displacement_history) == 0:
             # Initialize with current positions as reference
             self.displacement_history.append(self.positions.copy())

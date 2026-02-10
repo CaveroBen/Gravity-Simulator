@@ -72,25 +72,28 @@ def test_simulation_runs():
     """Test that simulation runs without errors."""
     print("Testing simulation execution...")
     
-    # Test 1D
-    network_1d = Network1D(n_masses=5, temperature=0.1)
+    # Test 1D with more steps for robustness
+    network_1d = Network1D(n_masses=5, temperature=0.5)
     initial_pos_1d = network_1d.positions.copy()
-    network_1d.simulate(steps=10)
+    network_1d.simulate(steps=100)  # Increased from 10 to 100 for more reliable test
     final_pos_1d = network_1d.positions
     
     # Center node should have moved (due to Brownian motion)
-    assert not np.allclose(initial_pos_1d[network_1d.center_idx], 
-                          final_pos_1d[network_1d.center_idx])
+    # Using a tolerance to handle edge cases
+    displacement_1d = np.linalg.norm(final_pos_1d[network_1d.center_idx] - 
+                                     initial_pos_1d[network_1d.center_idx])
+    assert displacement_1d > 0.01  # Should have moved at least this much
     
-    # Test 2D Square
-    network_2d_sq = Network2DSquare(size=3, temperature=0.1)
+    # Test 2D Square with more steps
+    network_2d_sq = Network2DSquare(size=3, temperature=0.5)
     initial_pos_2d = network_2d_sq.positions.copy()
-    network_2d_sq.simulate(steps=10)
+    network_2d_sq.simulate(steps=100)  # Increased from 10 to 100
     final_pos_2d = network_2d_sq.positions
     
     # Center node should have moved
-    assert not np.allclose(initial_pos_2d[network_2d_sq.center_idx], 
-                          final_pos_2d[network_2d_sq.center_idx])
+    displacement_2d = np.linalg.norm(final_pos_2d[network_2d_sq.center_idx] - 
+                                     initial_pos_2d[network_2d_sq.center_idx])
+    assert displacement_2d > 0.01  # Should have moved at least this much
     
     print("✓ Simulation execution test passed")
 
