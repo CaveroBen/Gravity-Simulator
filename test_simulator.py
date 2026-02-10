@@ -238,8 +238,8 @@ def test_periodic_boundaries_square():
     assert abs(distance - 1.0) < 0.01, f"Expected distance ~1.0, got {distance}"
     
     # Verify connections include wrapped edges
-    # For a 3x3 grid with periodic boundaries, each node should have exactly 4 connections
-    # Total connections should be 3*3*2 = 18 (2 per node: right and bottom)
+    # For a 3x3 grid with periodic boundaries, each node makes 2 outgoing connections
+    # (right and bottom with wrapping), so total should be 3*3*2 = 18 connections
     assert len(network.connections) == 18
     
     print("✓ Periodic boundaries test for square lattice passed")
@@ -265,8 +265,9 @@ def test_periodic_boundaries_triangular():
     assert distance < 2.0, f"Expected distance < 2.0 with wrapping, got {distance}"
     
     # Verify connections include wrapped edges
-    # For triangular lattice, each node has 3 outgoing connections
-    # Total should be 3*3*3 = 27
+    # For triangular lattice, each node makes 3 outgoing connections
+    # (right, bottom, and one diagonal based on row parity)
+    # Total should be 3*3*3 = 27 connections
     assert len(network.connections) == 27
     
     print("✓ Periodic boundaries test for triangular lattice passed")

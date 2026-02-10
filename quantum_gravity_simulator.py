@@ -236,18 +236,18 @@ class Network2DSquare(MassSpringNetwork):
         # Store initial positions
         self.initial_positions = self.positions.copy()
     
-    def periodic_vector(self, pos_i: np.ndarray, pos_j: np.ndarray) -> np.ndarray:
+    def periodic_vector(self, source_pos: np.ndarray, target_pos: np.ndarray) -> np.ndarray:
         """
-        Get minimum vector from pos_i to pos_j considering periodic boundaries.
+        Get minimum vector from source_pos to target_pos considering periodic boundaries.
         
         Args:
-            pos_i: Position of first node
-            pos_j: Position of second node
+            source_pos: Position of source node
+            target_pos: Position of target node
             
         Returns:
-            Minimum displacement vector considering periodic wrapping
+            Minimum displacement vector from source to target considering periodic wrapping
         """
-        dx = pos_j - pos_i
+        dx = target_pos - source_pos
         # Apply periodic boundary conditions
         Lx = self.size * self.spacing
         Ly = self.size * self.spacing
@@ -322,18 +322,18 @@ class Network2DTriangular(MassSpringNetwork):
         # Store initial positions
         self.initial_positions = self.positions.copy()
     
-    def periodic_vector(self, pos_i: np.ndarray, pos_j: np.ndarray) -> np.ndarray:
+    def periodic_vector(self, source_pos: np.ndarray, target_pos: np.ndarray) -> np.ndarray:
         """
-        Get minimum vector from pos_i to pos_j considering periodic boundaries.
+        Get minimum vector from source_pos to target_pos considering periodic boundaries.
         
         Args:
-            pos_i: Position of first node
-            pos_j: Position of second node
+            source_pos: Position of source node
+            target_pos: Position of target node
             
         Returns:
-            Minimum displacement vector considering periodic wrapping
+            Minimum displacement vector from source to target considering periodic wrapping
         """
-        dx = pos_j - pos_i
+        dx = target_pos - source_pos
         # Apply periodic boundary conditions
         # For triangular lattice, we still use rectangular periodic boundaries
         Lx = self.size * self.spacing
