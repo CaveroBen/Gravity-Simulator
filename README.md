@@ -5,8 +5,9 @@ A Python package to simulate quantum gravity using mass-spring networks. This si
 ## Features
 
 - **1D Mass-Spring Chain**: Linear array of masses connected by springs
-- **2D Square Lattice**: Square grid configuration with 4-neighbor connectivity
-- **2D Triangular Lattice**: Triangular grid configuration with 6-neighbor connectivity
+- **2D Square Lattice**: Square grid configuration with 4-neighbor connectivity and **periodic boundary conditions**
+- **2D Triangular Lattice**: Triangular grid configuration with 6-neighbor connectivity and **periodic boundary conditions**
+- **Periodic Boundary Conditions**: 2D lattices wrap around at edges, eliminating boundary effects and preserving translational symmetry
 - **Brownian Motion**: Center node undergoes temperature-driven random walk
 - **Displacement Tracking**: Tracks and reports displacements of all non-central masses
 - **Interactive Configuration**: Configure simulation parameters interactively with sensible defaults
@@ -142,6 +143,17 @@ Each connection between masses i and j exerts a force:
 F = k * |r_j - r_i|
 ```
 where k is the spring constant and r is the position vector.
+
+### Periodic Boundary Conditions (2D Lattices)
+For 2D square and triangular lattices, periodic boundary conditions are applied:
+- Nodes at the edge of the grid connect to nodes on the opposite edge
+- Distance calculations use the minimum image convention, wrapping around the grid
+- For a displacement vector dx between nodes:
+  ```
+  dx_wrapped = dx - L * round(dx / L)
+  ```
+  where L is the grid size in each dimension
+- This eliminates edge effects and preserves translational symmetry, similar to the mechanism used in `OscillatorArray_Vector.py`
 
 ### Damping
 Damping forces oppose motion:
