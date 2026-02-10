@@ -258,6 +258,16 @@ def run_lattice_sim(
                 dW_pos = rng.normal(0.0, sigma_position_noisy * np.sqrt(dt), size=2)
                 lattice.positions[idx] += dW_pos
         
+        # Recenter the system to prevent drift from equilibrium
+        # This maintains the center of mass at the initial position by subtracting
+        # the average displacement and velocity from all particles.
+        # Note: lattice.initial_positions is set in Lattice2D.__init__ (see line 33)
+        mean_velocity = np.mean(lattice.velocities, axis=0)
+        lattice.velocities -= mean_velocity
+        
+        mean_displacement = np.mean(lattice.positions, axis=0) - np.mean(lattice.initial_positions, axis=0)
+        lattice.positions -= mean_displacement
+        
         # Update phases with phase noise
         theta_dot = theta_dynamics_lattice(lattice, omega, K_theta)
         noise = np.full(lattice.N, sigma_theta_others)

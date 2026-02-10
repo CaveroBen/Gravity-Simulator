@@ -298,6 +298,42 @@ def test_forces_with_periodic_boundaries():
     print("✓ Force computation with periodic boundaries test passed")
 
 
+def test_center_of_mass_conservation():
+    """Test that center of mass is conserved during simulation."""
+    print("Testing center of mass conservation...")
+    
+    # Maximum allowed center of mass drift
+    MAX_COM_DRIFT = 1e-10
+    
+    np.random.seed(42)
+    
+    # Test with 1D network
+    network_1d = Network1D(n_masses=5, temperature=1.0)
+    initial_com_1d = np.mean(network_1d.positions, axis=0)
+    network_1d.simulate(steps=500, show_progress=False)
+    final_com_1d = np.mean(network_1d.positions, axis=0)
+    drift_1d = np.linalg.norm(final_com_1d - initial_com_1d)
+    assert drift_1d < MAX_COM_DRIFT, f"1D: Center of mass drifted by {drift_1d}"
+    
+    # Test with 2D square network
+    network_2d_sq = Network2DSquare(size=3, temperature=1.0)
+    initial_com_2d_sq = np.mean(network_2d_sq.positions, axis=0)
+    network_2d_sq.simulate(steps=500, show_progress=False)
+    final_com_2d_sq = np.mean(network_2d_sq.positions, axis=0)
+    drift_2d_sq = np.linalg.norm(final_com_2d_sq - initial_com_2d_sq)
+    assert drift_2d_sq < MAX_COM_DRIFT, f"2D Square: Center of mass drifted by {drift_2d_sq}"
+    
+    # Test with 2D triangular network
+    network_2d_tri = Network2DTriangular(size=3, temperature=1.0)
+    initial_com_2d_tri = np.mean(network_2d_tri.positions, axis=0)
+    network_2d_tri.simulate(steps=500, show_progress=False)
+    final_com_2d_tri = np.mean(network_2d_tri.positions, axis=0)
+    drift_2d_tri = np.linalg.norm(final_com_2d_tri - initial_com_2d_tri)
+    assert drift_2d_tri < MAX_COM_DRIFT, f"2D Triangular: Center of mass drifted by {drift_2d_tri}"
+    
+    print("✓ Center of mass conservation test passed")
+
+
 def run_all_tests():
     """Run all tests."""
     print("\n" + "="*60)
@@ -316,7 +352,8 @@ def run_all_tests():
         test_parameter_configuration,
         test_periodic_boundaries_square,
         test_periodic_boundaries_triangular,
-        test_forces_with_periodic_boundaries
+        test_forces_with_periodic_boundaries,
+        test_center_of_mass_conservation
     ]
     
     passed = 0

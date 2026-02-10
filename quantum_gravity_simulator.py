@@ -97,6 +97,16 @@ class MassSpringNetwork:
         # Update positions
         self.positions += self.velocities * self.dt
         
+        # Recenter the system to prevent drift from equilibrium
+        # This maintains the center of mass at the initial position by subtracting
+        # the average displacement and velocity from all particles.
+        # Note: initial_positions is always set before simulate() is called (see line 136-137)
+        mean_velocity = np.mean(self.velocities, axis=0)
+        self.velocities -= mean_velocity
+        
+        mean_displacement = np.mean(self.positions, axis=0) - np.mean(self.initial_positions, axis=0)
+        self.positions -= mean_displacement
+        
         # Track displacements of non-central masses
         self.track_displacements()
     
