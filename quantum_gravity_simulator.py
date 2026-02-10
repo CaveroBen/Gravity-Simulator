@@ -377,7 +377,7 @@ def visualize_network(network: MassSpringNetwork, title: str = "Mass-Spring Netw
         ax1.scatter(positions[:, 0], positions[:, 1], 
                    c='blue', s=50, label='Final positions')
         
-        # Draw displacement vectors for non-center nodes
+        # Draw displacement vectors for non-center nodes (center node vector omitted for clarity)
         for i in range(len(positions)):
             if i != network.center_idx:
                 ax1.arrow(initial_positions[i, 0], initial_positions[i, 1],
