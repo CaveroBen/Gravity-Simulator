@@ -97,6 +97,14 @@ class MassSpringNetwork:
         # Update positions
         self.positions += self.velocities * self.dt
         
+        # Recenter the system to prevent drift from equilibrium
+        # Calculate mean displacement and subtract it from all positions and velocities
+        mean_velocity = np.mean(self.velocities, axis=0)
+        self.velocities -= mean_velocity
+        
+        mean_displacement = np.mean(self.positions, axis=0) - np.mean(self.initial_positions, axis=0)
+        self.positions -= mean_displacement
+        
         # Track displacements of non-central masses
         self.track_displacements()
     
