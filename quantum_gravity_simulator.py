@@ -98,7 +98,9 @@ class MassSpringNetwork:
         self.positions += self.velocities * self.dt
         
         # Recenter the system to prevent drift from equilibrium
-        # Calculate mean displacement and subtract it from all positions and velocities
+        # This maintains the center of mass at the initial position by subtracting
+        # the average displacement and velocity from all particles.
+        # Note: initial_positions is always set before simulate() is called (see line 136-137)
         mean_velocity = np.mean(self.velocities, axis=0)
         self.velocities -= mean_velocity
         

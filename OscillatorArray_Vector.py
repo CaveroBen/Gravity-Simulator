@@ -259,7 +259,9 @@ def run_lattice_sim(
                 lattice.positions[idx] += dW_pos
         
         # Recenter the system to prevent drift from equilibrium
-        # Calculate average displacement and subtract from positions and velocities
+        # This maintains the center of mass at the initial position by subtracting
+        # the average displacement and velocity from all particles.
+        # Note: lattice.initial_positions is set in Lattice2D.__init__ (see line 33)
         mean_velocity = np.mean(lattice.velocities, axis=0)
         lattice.velocities -= mean_velocity
         
