@@ -28,6 +28,7 @@ wheels/
 *.jpg
 *.gif
 *.pdf
+figures/
 
 # IDEs
 .vscode/
