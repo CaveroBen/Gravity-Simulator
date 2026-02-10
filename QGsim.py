@@ -70,9 +70,10 @@ fig = visualize_averaged_results(
 )
 
 # Add simulation conditions as text box to the figure
-fig.text(0.02, 0.98, conditions_text, transform=fig.transFigure, 
-         fontsize=8, verticalalignment='top', family='monospace',
-         bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+# Position at top-left with slightly larger font for better readability
+fig.text(0.01, 0.99, conditions_text, transform=fig.transFigure, 
+         fontsize=9, verticalalignment='top', family='monospace',
+         bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.7, pad=0.5))
 
 # Access averaged data
 average_positions = results['average_final_positions']
