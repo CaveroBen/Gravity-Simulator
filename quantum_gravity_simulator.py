@@ -656,17 +656,20 @@ def print_results(network: MassSpringNetwork):
     # Radial displacement statistics
     radial_history = network.get_radial_displacement_history()
     if len(radial_history) > 0:
+        HISTORY_TAIL_FRACTION = 0.2  # Analyze last 20% of simulation
+        tail_start = -max(1, int(len(radial_history) * HISTORY_TAIL_FRACTION))
         print(f"\nRadial Displacement (Migration toward center):")
         print(f"  - Final: {radial_history[-1]:.6f}")
-        print(f"  - Mean (last 20%): {np.mean(radial_history[-max(1, len(radial_history)//5):]):.6f}")
+        print(f"  - Mean (last 20%): {np.mean(radial_history[tail_start:]):.6f}")
         print(f"  - (Positive = attraction, Negative = repulsion)")
     
     # Neighbor distance statistics
     neighbor_history = network.get_neighbor_distance_history()
     if len(neighbor_history) > 0:
+        tail_start = -max(1, int(len(neighbor_history) * HISTORY_TAIL_FRACTION))
         print(f"\nNeighbor Distances to Center:")
         print(f"  - Final: {neighbor_history[-1]:.4f}")
-        print(f"  - Mean (last 20%): {np.mean(neighbor_history[-max(1, len(neighbor_history)//5):]):.4f}")
+        print(f"  - Mean (last 20%): {np.mean(neighbor_history[tail_start:]):.4f}")
         print(f"  - Rest length: {network.rest_length:.4f}")
     
     print("="*60 + "\n")

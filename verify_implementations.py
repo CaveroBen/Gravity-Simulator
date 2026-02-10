@@ -96,8 +96,11 @@ fig, ((ax1, ax2)) = plt.subplots(1, 2, figsize=(14, 5))
 qgs_time = np.arange(len(radial_history))
 oav_time = np.arange(len(hist['radial_displacement']))
 
+# OscillatorArray_Vector samples every 200 steps, so we scale time by 10 for alignment
+OAV_TIME_SCALE = 10  # Each OAV sample = 10 simulation steps (200 dt with dt=0.001)
+
 ax1.plot(qgs_time, radial_history, 'b-', linewidth=2, label='quantum_gravity_simulator', alpha=0.8)
-ax1.plot(oav_time * 10, hist['radial_displacement'], 'r--', linewidth=2, label='OscillatorArray_Vector', alpha=0.8)
+ax1.plot(oav_time * OAV_TIME_SCALE, hist['radial_displacement'], 'r--', linewidth=2, label='OscillatorArray_Vector', alpha=0.8)
 ax1.axhline(y=0, color='k', linestyle=':', linewidth=2, alpha=0.5)
 ax1.set_xlabel('Time Step', fontsize=12)
 ax1.set_ylabel('Radial Displacement', fontsize=12)
@@ -107,7 +110,7 @@ ax1.grid(True, alpha=0.3)
 
 # Neighbor distance comparison
 ax2.plot(qgs_time, neighbor_history, 'b-', linewidth=2, label='quantum_gravity_simulator', alpha=0.8)
-ax2.plot(oav_time * 10, hist['neighbor_dist'], 'r--', linewidth=2, label='OscillatorArray_Vector', alpha=0.8)
+ax2.plot(oav_time * OAV_TIME_SCALE, hist['neighbor_dist'], 'r--', linewidth=2, label='OscillatorArray_Vector', alpha=0.8)
 ax2.axhline(y=1.0, color='k', linestyle=':', linewidth=2, alpha=0.5, label='Equilibrium')
 ax2.set_xlabel('Time Step', fontsize=12)
 ax2.set_ylabel('Neighbor Distance', fontsize=12)
