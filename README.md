@@ -165,12 +165,14 @@ F_damping = -γ * v
 ```
 where γ is the damping coefficient and v is velocity.
 
-### Brownian Motion
-The center node experiences random thermal forces:
+### Brownian Motion and Entropy-Driven Migration
+The center node experiences random thermal forces (Brownian motion):
 ```
 δv ~ √(T) * dt * N(0,1)
 ```
 where T is temperature and N(0,1) is standard normal distribution.
+
+**Key behavior:** The center node's random walk creates entropy, and the system naturally migrates towards this entropy source. This is the mechanism that maximizes entropy in a constrained system. Unlike systems with artificial center-of-mass constraints, this simulator allows the array to migrate towards the random-walking element, revealing the fundamental entropy-driven dynamics.
 
 ### Time Evolution
 Positions are updated using a simple Euler integration:
@@ -178,6 +180,8 @@ Positions are updated using a simple Euler integration:
 v(t+dt) = v(t) + (F/m) * dt
 x(t+dt) = x(t) + v(t) * dt
 ```
+
+The system exhibits **entropy-driven migration**: as the center element undergoes Brownian motion, other masses naturally migrate towards it through spring force interactions. This emergent behavior demonstrates how entropy maximization drives spatial organization in coupled oscillator systems.
 
 ### Relative Motion Visualization
 The visualizations display **relative motion** rather than absolute motion:
@@ -187,7 +191,7 @@ The visualizations display **relative motion** rather than absolute motion:
   d_rel[i] = d_abs[i] - mean(d_abs[all])
   ```
 - This removes the bulk translation of the system, showing oscillation patterns relative to the grid
-- The center node's Brownian motion causes the entire framework to drift, but relative motion reveals the interesting dynamics of how masses respond to the center's fluctuations
+- The center node's Brownian motion causes the system to migrate, and relative motion reveals the patterns of how masses respond to the center's fluctuations
 
 ## Parameters
 
@@ -225,7 +229,9 @@ The simulator provides:
 
 ## Theory
 
-This simulator is inspired by quantum gravity theories that model spacetime as a discrete network of oscillators. The Brownian motion of the center node represents quantum fluctuations, while the spring connections model the coupling between spacetime elements. By tracking how these fluctuations propagate through the network, we can study emergent properties of the system.
+This simulator is inspired by quantum gravity theories that model spacetime as a discrete network of oscillators. The Brownian motion of the center node represents quantum fluctuations, while the spring connections model the coupling between spacetime elements.
+
+**Entropy-Driven Migration:** When the center element undergoes random walk (Brownian motion), it creates entropy in the system. The key insight is that the mechanism which maximizes entropy in a constrained system (like a mass-spring network) is for the system to migrate towards the entropy source. This simulator demonstrates this fundamental principle by allowing the array to naturally migrate towards the random-walking center element, rather than artificially constraining the center of mass. This emergent behavior reveals how entropy maximization drives spatial organization in coupled systems.
 
 ## License
 
