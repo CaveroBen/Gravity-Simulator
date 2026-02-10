@@ -302,6 +302,9 @@ def test_entropy_driven_migration():
     """Test that the system migrates towards the random-walking center element."""
     print("Testing entropy-driven migration...")
     
+    # Minimum threshold for drift to account for stochastic nature of Brownian motion
+    MIN_DRIFT = 1e-6
+    
     np.random.seed(42)
     
     # Test with 1D network
@@ -314,11 +317,11 @@ def test_entropy_driven_migration():
     
     # Center of mass should drift (migrate towards center element)
     drift_1d = np.linalg.norm(final_com_1d - initial_com_1d)
-    assert drift_1d > 0, f"1D: Center of mass should drift due to entropy-driven migration"
+    assert drift_1d > MIN_DRIFT, f"1D: Center of mass should drift due to entropy-driven migration (drift={drift_1d})"
     
     # Center element should have moved due to Brownian motion
     center_displacement_1d = np.linalg.norm(final_center_pos_1d - initial_center_pos_1d)
-    assert center_displacement_1d > 0, "1D: Center element should move due to Brownian motion"
+    assert center_displacement_1d > MIN_DRIFT, f"1D: Center element should move due to Brownian motion (displacement={center_displacement_1d})"
     
     # Test with 2D square network
     network_2d_sq = Network2DSquare(size=3, temperature=1.0)
@@ -330,11 +333,11 @@ def test_entropy_driven_migration():
     
     # Center of mass should drift
     drift_2d_sq = np.linalg.norm(final_com_2d_sq - initial_com_2d_sq)
-    assert drift_2d_sq > 0, f"2D Square: Center of mass should drift due to entropy-driven migration"
+    assert drift_2d_sq > MIN_DRIFT, f"2D Square: Center of mass should drift due to entropy-driven migration (drift={drift_2d_sq})"
     
     # Center element should have moved
     center_displacement_2d_sq = np.linalg.norm(final_center_pos_2d_sq - initial_center_pos_2d_sq)
-    assert center_displacement_2d_sq > 0, "2D Square: Center element should move due to Brownian motion"
+    assert center_displacement_2d_sq > MIN_DRIFT, f"2D Square: Center element should move due to Brownian motion (displacement={center_displacement_2d_sq})"
     
     # Test with 2D triangular network
     network_2d_tri = Network2DTriangular(size=3, temperature=1.0)
@@ -346,11 +349,11 @@ def test_entropy_driven_migration():
     
     # Center of mass should drift
     drift_2d_tri = np.linalg.norm(final_com_2d_tri - initial_com_2d_tri)
-    assert drift_2d_tri > 0, f"2D Triangular: Center of mass should drift due to entropy-driven migration"
+    assert drift_2d_tri > MIN_DRIFT, f"2D Triangular: Center of mass should drift due to entropy-driven migration (drift={drift_2d_tri})"
     
     # Center element should have moved
     center_displacement_2d_tri = np.linalg.norm(final_center_pos_2d_tri - initial_center_pos_2d_tri)
-    assert center_displacement_2d_tri > 0, "2D Triangular: Center element should move due to Brownian motion"
+    assert center_displacement_2d_tri > MIN_DRIFT, f"2D Triangular: Center element should move due to Brownian motion (displacement={center_displacement_2d_tri})"
     
     print("✓ Entropy-driven migration test passed")
 
