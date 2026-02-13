@@ -16,7 +16,7 @@ from quantum_gravity_simulator import (
     Network2DTriangular,
     run_multiple_simulations,
     visualize_averaged_results,
-    visualize_network_3d
+    visualize_averaged_results_3d
 )
 
 
@@ -91,15 +91,15 @@ plt.savefig(filename, dpi=150, bbox_inches='tight')
 print(f"Saved visualization to: {filename}")
 plt.close()
 
-# Generate 3D visualization from a representative simulation
-print("\nGenerating 3D displacement visualization...")
-# Run a single simulation to get a network object for 3D visualization
-representative_network = network_class(**network_params)
-representative_network.simulate(steps=simulation_steps, show_progress=False)
-
-# Create 3D visualization
-fig_3d = visualize_network_3d(representative_network, 
-                              f"{network_class.__name__} - 3D Displacement View")
+# Generate 3D visualization from averaged data
+print("\nGenerating 3D displacement visualization from averaged data...")
+# Use the averaged data directly instead of running a single simulation
+fig_3d = visualize_averaged_results_3d(
+    results=results,
+    network_class=network_class,
+    network_params=network_params,
+    title=f"{network_class.__name__} - 3D Averaged Displacement View"
+)
 if fig_3d:
     # Save 3D visualization with same timestamp
     filename_3d = os.path.join(figures_dir, f'{base_filename}_3d_{timestamp}.png')

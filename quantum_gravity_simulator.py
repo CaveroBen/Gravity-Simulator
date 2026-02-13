@@ -1188,6 +1188,106 @@ def visualize_network_3d_surface(network: MassSpringNetwork,
     return fig
 
 
+def visualize_averaged_results_3d(results: dict, network_class, network_params: dict,
+                                   title: str = "Averaged 3D Displacement Visualization"):
+    """
+    Visualize averaged results from multiple simulations in 3D where the z-axis 
+    represents average displacement magnitude.
+    
+    This function uses averaged data from multiple simulations instead of running 
+    a single simulation, providing a more robust statistical view of the displacement 
+    patterns.
+    
+    Args:
+        results: Dictionary returned by run_multiple_simulations containing:
+                - 'initial_positions': Initial positions of all masses
+                - 'average_final_positions': Averaged final positions across simulations
+                - 'average_displacements': Averaged displacement vectors
+                - 'n_simulations': Number of simulations averaged
+        network_class: The network class used (Network2DSquare or Network2DTriangular)
+        network_params: Dictionary of network parameters
+        title: Title for the plot
+    
+    Returns:
+        The matplotlib figure object, or None if the network is not 2D
+    """
+    initial_positions = results['initial_positions']
+    average_final_positions = results['average_final_positions']
+    average_displacements = results['average_displacements']
+    n_simulations = results['n_simulations']
+    
+    # Check if network is 2D
+    if initial_positions.shape[1] != 2:
+        print("Warning: 3D visualization is only supported for 2D networks.")
+        return None
+    
+    # Create a temporary network to get center_idx
+    temp_network = network_class(**network_params)
+    center_idx = temp_network.center_idx
+    
+    if center_idx is None:
+        print("Warning: No center node defined in the network.")
+        return None
+    
+    # Calculate average displacement magnitudes
+    # These are the magnitudes of the displacement vectors from initial to final positions
+    avg_displacement_magnitudes = np.linalg.norm(average_displacements, axis=1)
+    
+    # Create 3D plot
+    fig = plt.figure(figsize=(14, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Separate center and non-center nodes for visualization
+    non_center_mask = np.ones(len(average_final_positions), dtype=bool)
+    non_center_mask[center_idx] = False
+    
+    # Plot non-center nodes with z-axis as displacement magnitude
+    scatter = ax.scatter(
+        average_final_positions[non_center_mask, 0],
+        average_final_positions[non_center_mask, 1],
+        avg_displacement_magnitudes[non_center_mask],
+        c=avg_displacement_magnitudes[non_center_mask],
+        cmap='viridis',
+        s=100,
+        alpha=0.8,
+        label='Particles'
+    )
+    
+    # Plot center node
+    ax.scatter(
+        average_final_positions[center_idx, 0],
+        average_final_positions[center_idx, 1],
+        avg_displacement_magnitudes[center_idx],
+        c='red',
+        s=300,
+        marker='*',
+        label='Center node (with noise)',
+        edgecolors='darkred',
+        linewidths=2
+    )
+    
+    # Add colorbar
+    cbar = plt.colorbar(scatter, ax=ax, shrink=0.6, pad=0.1)
+    cbar.set_label('Average Displacement Magnitude', rotation=270, labelpad=20)
+    
+    # Labels and title
+    ax.set_xlabel('X Position', fontsize=11)
+    ax.set_ylabel('Y Position', fontsize=11)
+    ax.set_zlabel('Average Displacement Magnitude', fontsize=11)
+    ax.set_title(f'{title}\n(Averaged over {n_simulations} simulations)', 
+                 fontsize=14, fontweight='bold')
+    ax.legend(loc='upper left')
+    
+    # Add grid for better depth perception
+    ax.grid(True, alpha=0.3)
+    
+    # Improve viewing angle
+    ax.view_init(elev=20, azim=45)
+    
+    plt.tight_layout()
+    return fig
+
+
 def animate_simulation_live(network_class, network_params: dict, simulation_steps: int,
                             update_interval: int = 50, title: str = "Live Simulation"):
     """
