@@ -7,7 +7,6 @@ Supports 1D and 2D (square/triangular) configurations with Brownian motion.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from typing import Tuple, List, Optional
 from tqdm import tqdm
 
@@ -933,11 +932,14 @@ def visualize_network_3d(network: MassSpringNetwork, title: str = "3D Displaceme
     - Z is the magnitude of displacement towards the center (the particle with noise)
     
     Args:
-        network: The network to visualize
+        network: The network to visualize. Must be a MassSpringNetwork with 
+                get_final_positions(), get_initial_positions() methods, and a 
+                center_idx attribute.
         title: Title for the plot
     
     Returns:
-        The matplotlib figure object
+        The matplotlib figure object, or None if the network is not 2D or 
+        center_idx is not defined
     """
     positions = network.get_final_positions()
     initial_positions = network.get_initial_positions()
@@ -956,7 +958,7 @@ def visualize_network_3d(network: MassSpringNetwork, title: str = "3D Displaceme
     center_pos_initial = initial_positions[network.center_idx]
     
     # Check if this network has periodic boundary support
-    has_periodic = hasattr(network, 'periodic_vector')
+    has_periodic = hasattr(network, 'periodic_vector') and callable(getattr(network, 'periodic_vector', None))
     
     displacement_magnitudes = np.zeros(len(positions))
     
