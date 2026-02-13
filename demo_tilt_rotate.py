@@ -105,7 +105,7 @@ def demo_different_angles():
     print("  - Side view:    elev=0,  azim=0")
     print("  - Front view:   elev=0,  azim=90")
     print("  - Default:      elev=20, azim=45")
-    print("  - Isometric:    elev=35.264, azim=45")
+    print("  - Isometric:    elev=35.264, azim=45  # arctan(1/√2) for true isometric projection")
     
     print("\n" + "="*70)
     print("Demo completed! Check the generated PNG files.")

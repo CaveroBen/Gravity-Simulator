@@ -14,6 +14,25 @@ from typing import Tuple, List, Optional
 from tqdm import tqdm
 
 
+def _setup_interactive_3d_mode():
+    """
+    Helper function to enable interactive 3D mode with instructions.
+    
+    This is used by 3D visualization functions to enable mouse-controlled
+    rotation and zoom.
+    """
+    plt.ion()  # Turn on interactive mode
+    print("\n" + "="*60)
+    print("INTERACTIVE 3D VISUALIZATION")
+    print("="*60)
+    print("You can now:")
+    print("  - Click and drag to rotate the view")
+    print("  - Right-click and drag to zoom")
+    print("  - Use mouse wheel to zoom")
+    print("  - Close the window when finished")
+    print("="*60 + "\n")
+
+
 class MassSpringNetwork:
     """Base class for mass-spring network simulation."""
     
@@ -1042,17 +1061,7 @@ def visualize_network_3d(network: MassSpringNetwork, title: str = "3D Displaceme
     
     # Enable interactive rotation if requested
     if interactive:
-        # Enable mouse interaction for rotation
-        plt.ion()  # Turn on interactive mode
-        print("\n" + "="*60)
-        print("INTERACTIVE 3D VISUALIZATION")
-        print("="*60)
-        print("You can now:")
-        print("  - Click and drag to rotate the view")
-        print("  - Right-click and drag to zoom")
-        print("  - Use mouse wheel to zoom")
-        print("  - Close the window when finished")
-        print("="*60 + "\n")
+        _setup_interactive_3d_mode()
     
     plt.tight_layout()
     return fig
@@ -1193,17 +1202,7 @@ def visualize_network_3d_surface(network: MassSpringNetwork,
     
     # Enable interactive rotation if requested
     if interactive:
-        # Enable mouse interaction for rotation
-        plt.ion()  # Turn on interactive mode
-        print("\n" + "="*60)
-        print("INTERACTIVE 3D VISUALIZATION")
-        print("="*60)
-        print("You can now:")
-        print("  - Click and drag to rotate the view")
-        print("  - Right-click and drag to zoom")
-        print("  - Use mouse wheel to zoom")
-        print("  - Close the window when finished")
-        print("="*60 + "\n")
+        _setup_interactive_3d_mode()
     
     plt.tight_layout()
     return fig
@@ -1322,17 +1321,7 @@ def visualize_averaged_results_3d(results: dict, network_class, network_params: 
     
     # Enable interactive rotation if requested
     if interactive:
-        # Enable mouse interaction for rotation
-        plt.ion()  # Turn on interactive mode
-        print("\n" + "="*60)
-        print("INTERACTIVE 3D VISUALIZATION")
-        print("="*60)
-        print("You can now:")
-        print("  - Click and drag to rotate the view")
-        print("  - Right-click and drag to zoom")
-        print("  - Use mouse wheel to zoom")
-        print("  - Close the window when finished")
-        print("="*60 + "\n")
+        _setup_interactive_3d_mode()
     
     plt.tight_layout()
     return fig
