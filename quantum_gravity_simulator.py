@@ -1229,23 +1229,37 @@ def visualize_averaged_results_3d(results: dict, network_class, network_params: 
     # These are the magnitudes of the displacement vectors from initial to final positions
     avg_displacement_magnitudes = np.linalg.norm(average_displacements, axis=1)
     
+    # Create triangulation for the surface
+    x = average_final_positions[:, 0]
+    y = average_final_positions[:, 1]
+    z = avg_displacement_magnitudes
+    
+    # Create a Delaunay triangulation
+    triang = Triangulation(x, y)
+    
     # Create 3D plot
     fig = plt.figure(figsize=(14, 10))
     ax = fig.add_subplot(111, projection='3d')
+    
+    # Plot the surface
+    surf = ax.plot_trisurf(triang, z, cmap='viridis', alpha=0.7, linewidth=0.2,
+                           edgecolor='black', antialiased=True)
     
     # Separate center and non-center nodes for visualization
     non_center_mask = np.ones(len(average_final_positions), dtype=bool)
     non_center_mask[center_idx] = False
     
-    # Plot non-center nodes with z-axis as displacement magnitude
-    scatter = ax.scatter(
+    # Plot non-center nodes on top of surface
+    ax.scatter(
         average_final_positions[non_center_mask, 0],
         average_final_positions[non_center_mask, 1],
         avg_displacement_magnitudes[non_center_mask],
         c=avg_displacement_magnitudes[non_center_mask],
         cmap='viridis',
-        s=100,
-        alpha=0.8,
+        s=80,
+        alpha=0.9,
+        edgecolors='black',
+        linewidths=1,
         label='Particles'
     )
     
@@ -1263,7 +1277,7 @@ def visualize_averaged_results_3d(results: dict, network_class, network_params: 
     )
     
     # Add colorbar
-    cbar = plt.colorbar(scatter, ax=ax, shrink=0.6, pad=0.1)
+    cbar = plt.colorbar(surf, ax=ax, shrink=0.6, pad=0.1)
     cbar.set_label('Average Displacement Magnitude', rotation=270, labelpad=20)
     
     # Labels and title
