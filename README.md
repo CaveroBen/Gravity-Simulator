@@ -22,6 +22,8 @@ A Python package to simulate quantum gravity using mass-spring networks. This si
   - Visualizes displacement magnitudes with color-coded heatmaps
   - Migration analysis plots showing attraction/repulsion over time
   - **3D displacement visualization** for 2D networks showing displacement toward center as height
+  - **Interactive 3D surface plots** with mouse-controlled rotation and zoom
+  - **Live simulation animation** with real-time updates
 
 ## Installation
 
@@ -37,6 +39,26 @@ pip install -r requirements.txt
 ```
 
 ## Quick Start
+
+### Interactive 3D Visualization Demo (New!)
+
+Experience interactive 3D surface plots and live simulations:
+
+```bash
+python demo_interactive.py
+```
+
+This will offer two demos:
+1. **Interactive 3D Surface Plot**: Rotate and zoom the 3D visualization with your mouse
+   - Click and drag to rotate the view
+   - Right-click and drag (or scroll) to zoom
+   - Points are connected by a smooth triangulated surface
+   - Color-coded surface shows displacement patterns
+   
+2. **Live Simulation**: Watch the simulation evolve in real-time
+   - Updates every 50 simulation steps
+   - See particles migrate toward the entropy source live
+   - Surface plot updates dynamically during simulation
 
 ### Multi-Simulation Averaging Demo (New!)
 
@@ -184,7 +206,7 @@ network = Network2DSquare(
 
 network.simulate(steps=1500, show_progress=True)
 
-# Generate 3D visualization
+# Generate 3D visualization (scatter plot)
 fig = visualize_network_3d(network, "3D Displacement View")
 plt.savefig('3d_displacement.png', dpi=150, bbox_inches='tight')
 plt.show()
@@ -195,6 +217,74 @@ The 3D visualization displays:
 - Z coordinate (height) representing displacement magnitude toward center
 - Color-coded points showing displacement intensity
 - Red star marking the center node with Brownian noise
+
+### Interactive 3D Surface Visualization
+
+For a more immersive view with points connected by a surface:
+
+```python
+from quantum_gravity_simulator import Network2DSquare, visualize_network_3d_surface
+import matplotlib.pyplot as plt
+
+# Create and simulate a 2D network
+network = Network2DSquare(
+    size=5,
+    mass=1.0,
+    spring_constant=8.0,
+    damping=0.3,
+    dt=0.01,
+    temperature=1.5
+)
+
+network.simulate(steps=1500, show_progress=True)
+
+# Generate interactive 3D surface visualization
+fig = visualize_network_3d_surface(network, "3D Surface View", interactive=True)
+plt.savefig('3d_surface.png', dpi=150, bbox_inches='tight')
+plt.show()  # Interactive: click and drag to rotate, scroll to zoom
+```
+
+The 3D surface visualization displays:
+- X and Y coordinates of particle positions
+- Z coordinate (height) representing displacement magnitude toward center
+- **Triangulated surface mesh** connecting all particles
+- Color-coded surface showing displacement patterns
+- Particles overlaid on the surface
+- Red star marking the center node with Brownian noise
+- **Interactive controls**: Rotate with mouse, zoom with scroll wheel
+
+### Live Simulation Animation
+
+Watch your simulation evolve in real-time with periodic updates:
+
+```python
+from quantum_gravity_simulator import Network2DTriangular, animate_simulation_live
+
+# Define network parameters
+network_params = {
+    'size': 5,
+    'mass': 1.0,
+    'spring_constant': 8.0,
+    'damping': 0.3,
+    'dt': 0.01,
+    'temperature': 1.5
+}
+
+# Run live simulation with updates every 50 steps
+network = animate_simulation_live(
+    network_class=Network2DTriangular,
+    network_params=network_params,
+    simulation_steps=1000,
+    update_interval=50,  # Update plot every 50 steps
+    title="Live Simulation"
+)
+```
+
+The live simulation:
+- Updates the 3D surface plot in real-time
+- Shows particle migration as it happens
+- Displays current step number in the title
+- Allows you to watch entropy-driven dynamics unfold
 
 ### Multi-Simulation Averaging
 
@@ -254,13 +344,24 @@ The simulator generates comprehensive visualizations showing:
 5. **Network Connections**: Spring connections shown in both initial (faint gray) and final (blue) configurations
 6. **Relative Displacement Heatmap**: Color-coded visualization of relative displacement magnitudes
 7. **Migration Analysis Plots**: Time-series showing radial displacement and neighbor distances over time
-8. **Averaged Results** (new): Visualizations of averaged positions and displacements across multiple simulation runs
-9. **3D Displacement Visualization** (new): For 2D networks, a 3D plot where:
+8. **Averaged Results**: Visualizations of averaged positions and displacements across multiple simulation runs
+9. **3D Displacement Visualization**: For 2D networks, a 3D plot where:
    - X and Y axes show spatial positions of particles
    - Z axis (height) represents the magnitude of displacement toward the center node
    - Color-coded points indicate displacement magnitude
    - Center node (with Brownian noise) is highlighted in red
    - Provides intuitive visual understanding of entropy-driven migration patterns
+10. **Interactive 3D Surface Visualization** (new): Enhanced 3D visualization with:
+   - Triangulated surface mesh connecting all particles
+   - Smooth, color-coded surface showing displacement patterns
+   - **Interactive controls**: Click and drag to rotate, scroll to zoom
+   - Real-time repositioning of the viewing angle
+   - Better depth perception with connected surface topology
+11. **Live Simulation Animation** (new): Watch simulations evolve in real-time:
+   - 3D surface plot updates periodically during simulation
+   - Shows particle migration as it happens
+   - Configurable update interval for performance tuning
+   - Provides dynamic view of entropy-driven dynamics
 
 ## Physics Model
 
