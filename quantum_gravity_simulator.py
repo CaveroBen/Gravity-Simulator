@@ -1242,8 +1242,8 @@ def visualize_averaged_results_3d(results: dict, network_class, network_params: 
     ax = fig.add_subplot(111, projection='3d')
     
     # Plot the surface
-    surf = ax.plot_trisurf(triang, z, cmap='viridis', alpha=0.7, linewidth=0.2,
-                           edgecolor='black', antialiased=True)
+    surf = ax.plot_trisurf(triang, z, cmap='viridis', alpha=0.7, linewidth=0,
+                           antialiased=True)
     
     # Separate center and non-center nodes for visualization
     non_center_mask = np.ones(len(average_final_positions), dtype=bool)
