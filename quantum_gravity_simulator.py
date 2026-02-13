@@ -1199,11 +1199,7 @@ def visualize_averaged_results_3d(results: dict, network_class, network_params: 
     of the displacement patterns.
     
     Args:
-        results: Dictionary returned by run_multiple_simulations containing:
-                - 'initial_positions': Initial positions of all masses
-                - 'average_final_positions': Averaged final positions across simulations
-                - 'average_displacements': Averaged displacement vectors
-                - 'n_simulations': Number of simulations averaged
+        results: Dictionary returned by run_multiple_simulations
         network_class: The network class used (Network2DSquare or Network2DTriangular)
         network_params: Dictionary of network parameters
         title: Title for the plot
