@@ -16,7 +16,8 @@ from quantum_gravity_simulator import (
     Network2DTriangular,
     run_multiple_simulations,
     visualize_averaged_results,
-    visualize_network_3d
+    visualize_network_3d,
+    visualize_network_3d_surface
 )
 
 
@@ -91,20 +92,21 @@ plt.savefig(filename, dpi=150, bbox_inches='tight')
 print(f"Saved visualization to: {filename}")
 plt.close()
 
-# Generate 3D visualization from a representative simulation
-print("\nGenerating 3D displacement visualization...")
+# Generate 3D surface plot visualization from a representative simulation
+print("\nGenerating 3D displacement surface plot visualization...")
 # Run a single simulation to get a network object for 3D visualization
 representative_network = network_class(**network_params)
 representative_network.simulate(steps=simulation_steps, show_progress=False)
 
-# Create 3D visualization
-fig_3d = visualize_network_3d(representative_network, 
-                              f"{network_class.__name__} - 3D Displacement View")
+# Create 3D surface plot visualization
+fig_3d = visualize_network_3d_surface(representative_network, 
+                                      f"{network_class.__name__} - 3D Surface Plot",
+                                      interactive=False)
 if fig_3d:
-    # Save 3D visualization with same timestamp
-    filename_3d = os.path.join(figures_dir, f'{base_filename}_3d_{timestamp}.png')
+    # Save 3D surface plot with same timestamp
+    filename_3d = os.path.join(figures_dir, f'{base_filename}_3d_surface_{timestamp}.png')
     fig_3d.savefig(filename_3d, dpi=150, bbox_inches='tight')
-    print(f"Saved 3D visualization to: {filename_3d}")
+    print(f"Saved 3D surface plot to: {filename_3d}")
     plt.close(fig_3d)
 
 # Print statistics
