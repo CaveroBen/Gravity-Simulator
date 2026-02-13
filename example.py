@@ -11,6 +11,7 @@ from quantum_gravity_simulator import (
     Network2DSquare, 
     Network2DTriangular,
     visualize_network,
+    visualize_network_3d,
     print_results
 )
 
@@ -111,6 +112,17 @@ def interactive_simulation():
     plt.show()
     plt.close()
     
+    # Generate 3D visualization if it's a 2D network
+    if network_type in ['square', 'triangular']:
+        print("\nGenerating 3D displacement visualization...")
+        fig_3d = visualize_network_3d(network, f"{title} - 3D View")
+        if fig_3d is not None:
+            filename_3d = f'quantum_gravity_{network_type}_3d_interactive.png'
+            plt.savefig(filename_3d, dpi=150, bbox_inches='tight')
+            print(f"Saved 3D visualization to: {filename_3d}")
+            plt.show()
+            plt.close()
+    
     print("\n" + "="*60)
     print("Simulation completed!")
     print("="*60 + "\n")
@@ -182,6 +194,13 @@ def example_2d_square():
     plt.savefig('quantum_gravity_2d_square.png', dpi=150, bbox_inches='tight')
     print("Saved visualization to: quantum_gravity_2d_square.png")
     plt.close()
+    
+    # 3D visualization
+    fig_3d = visualize_network_3d(network, "2D Square Lattice - 3D View")
+    if fig_3d is not None:
+        plt.savefig('quantum_gravity_2d_square_3d.png', dpi=150, bbox_inches='tight')
+        print("Saved 3D visualization to: quantum_gravity_2d_square_3d.png")
+        plt.close()
 
 
 def example_2d_triangular():
@@ -216,6 +235,13 @@ def example_2d_triangular():
     plt.savefig('quantum_gravity_2d_triangular.png', dpi=150, bbox_inches='tight')
     print("Saved visualization to: quantum_gravity_2d_triangular.png")
     plt.close()
+    
+    # 3D visualization
+    fig_3d = visualize_network_3d(network, "2D Triangular Lattice - 3D View")
+    if fig_3d is not None:
+        plt.savefig('quantum_gravity_2d_triangular_3d.png', dpi=150, bbox_inches='tight')
+        print("Saved 3D visualization to: quantum_gravity_2d_triangular_3d.png")
+        plt.close()
 
 
 def main():

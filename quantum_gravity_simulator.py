@@ -7,6 +7,7 @@ Supports 1D and 2D (square/triangular) configurations with Brownian motion.
 
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from typing import Tuple, List, Optional
 from tqdm import tqdm
 
@@ -917,6 +918,118 @@ def visualize_averaged_results(results: dict, network_class, network_params: dic
         ax2.set_title(f'Average Displacement Magnitudes (n={n_simulations})')
         ax2.grid(True)
         ax2.axis('equal')
+    
+    plt.tight_layout()
+    return fig
+
+
+def visualize_network_3d(network: MassSpringNetwork, title: str = "3D Displacement Visualization"):
+    """
+    Visualize the network in 3D where the third dimension is the magnitude of 
+    displacement towards the center node.
+    
+    For 2D networks, this creates a 3D plot where:
+    - X and Y are the spatial positions of the particles
+    - Z is the magnitude of displacement towards the center (the particle with noise)
+    
+    Args:
+        network: The network to visualize
+        title: Title for the plot
+    
+    Returns:
+        The matplotlib figure object
+    """
+    positions = network.get_final_positions()
+    initial_positions = network.get_initial_positions()
+    
+    # Check if network is 2D
+    if positions.shape[1] != 2:
+        print("Warning: 3D visualization is only supported for 2D networks.")
+        return None
+    
+    if network.center_idx is None:
+        print("Warning: No center node defined in the network.")
+        return None
+    
+    # Calculate displacement magnitudes toward the center
+    center_pos_current = positions[network.center_idx]
+    center_pos_initial = initial_positions[network.center_idx]
+    
+    # Check if this network has periodic boundary support
+    has_periodic = hasattr(network, 'periodic_vector')
+    
+    displacement_magnitudes = np.zeros(len(positions))
+    
+    for i in range(len(positions)):
+        if i == network.center_idx:
+            # The center node itself has zero "displacement toward center"
+            displacement_magnitudes[i] = 0.0
+        else:
+            # Calculate distance from mass i to center (current and initial)
+            if has_periodic:
+                # Use periodic boundaries for distance calculation
+                r_current = network.periodic_vector(positions[i], center_pos_current)
+                r_initial = network.periodic_vector(initial_positions[i], center_pos_initial)
+            else:
+                # Direct distance without periodic boundaries
+                r_current = center_pos_current - positions[i]
+                r_initial = center_pos_initial - initial_positions[i]
+            
+            dist_current = np.linalg.norm(r_current)
+            dist_initial = np.linalg.norm(r_initial)
+            
+            # Positive value means moved toward center (magnitude of displacement)
+            displacement_magnitudes[i] = dist_initial - dist_current
+    
+    # Create 3D plot
+    fig = plt.figure(figsize=(14, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Separate center and non-center nodes for visualization
+    non_center_mask = np.ones(len(positions), dtype=bool)
+    non_center_mask[network.center_idx] = False
+    
+    # Plot non-center nodes
+    scatter = ax.scatter(
+        positions[non_center_mask, 0],
+        positions[non_center_mask, 1],
+        displacement_magnitudes[non_center_mask],
+        c=displacement_magnitudes[non_center_mask],
+        cmap='viridis',
+        s=100,
+        alpha=0.8,
+        label='Particles'
+    )
+    
+    # Plot center node
+    ax.scatter(
+        positions[network.center_idx, 0],
+        positions[network.center_idx, 1],
+        displacement_magnitudes[network.center_idx],
+        c='red',
+        s=300,
+        marker='*',
+        label='Center node (with noise)',
+        edgecolors='darkred',
+        linewidths=2
+    )
+    
+    # Add colorbar
+    cbar = plt.colorbar(scatter, ax=ax, shrink=0.6, pad=0.1)
+    cbar.set_label('Displacement Magnitude Toward Center', rotation=270, labelpad=20)
+    
+    # Labels and title
+    ax.set_xlabel('X Position', fontsize=11)
+    ax.set_ylabel('Y Position', fontsize=11)
+    ax.set_zlabel('Displacement Toward Center', fontsize=11)
+    ax.set_title(title, fontsize=14, fontweight='bold')
+    ax.legend(loc='upper left')
+    
+    # Add grid for better depth perception
+    ax.grid(True, alpha=0.3)
+    
+    # Improve viewing angle
+    ax.view_init(elev=20, azim=45)
     
     plt.tight_layout()
     return fig
