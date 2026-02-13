@@ -81,6 +81,30 @@ This feature is useful for:
 - Understanding typical displacement patterns
 - Statistical analysis of simulation outcomes
 
+### Tilt and Rotate Demo (New!)
+
+Explore different viewing angles for 3D visualizations:
+
+```bash
+python demo_tilt_rotate.py
+```
+
+This will:
+1. Create and simulate a 2D square lattice
+2. Generate 3D surface plots from 5 different viewing angles:
+   - Default view (standard angle)
+   - Top view (bird's eye perspective)
+   - Side view (profile view)
+   - Low angle (dramatic perspective)
+   - High angle (better depth perception)
+3. Show how to use `elev` and `azim` parameters to control viewing angles
+
+This feature is useful for:
+- Visualizing data from multiple perspectives
+- Finding the best angle to highlight specific features
+- Creating presentation-ready visualizations
+- Understanding 3D structure from different orientations
+
 ### Entropy-Driven Migration Demo (Recommended)
 
 Run the migration demonstration to see how coupled oscillators respond to a center node undergoing Brownian motion:
@@ -218,7 +242,7 @@ The 3D visualization displays:
 - Color-coded points showing displacement intensity
 - Red star marking the center node with Brownian noise
 
-### Interactive 3D Surface Visualization
+### Interactive 3D Surface Visualization with Custom Viewing Angles
 
 For a more immersive view with points connected by a surface:
 
@@ -238,8 +262,14 @@ network = Network2DSquare(
 
 network.simulate(steps=1500, show_progress=True)
 
-# Generate interactive 3D surface visualization
-fig = visualize_network_3d_surface(network, "3D Surface View", interactive=True)
+# Generate interactive 3D surface visualization with custom viewing angle
+fig = visualize_network_3d_surface(
+    network, 
+    "3D Surface View", 
+    elev=30,        # Elevation angle (tilt) in degrees
+    azim=120,       # Azimuth angle (rotation) in degrees
+    interactive=True  # Enable mouse-controlled rotation and zoom
+)
 plt.savefig('3d_surface.png', dpi=150, bbox_inches='tight')
 plt.show()  # Interactive: click and drag to rotate, scroll to zoom
 ```
@@ -252,6 +282,13 @@ The 3D surface visualization displays:
 - Particles overlaid on the surface
 - Red star marking the center node with Brownian noise
 - **Interactive controls**: Rotate with mouse, zoom with scroll wheel
+- **Custom viewing angles**: Use `elev` and `azim` parameters to set initial view
+
+**Common viewing angles:**
+- Top view: `elev=90, azim=0` (bird's eye view)
+- Side view: `elev=0, azim=0` (profile view)
+- Default: `elev=20, azim=45` (standard angle)
+- Isometric: `elev=35.264, azim=45` (technical drawing style)
 
 ### Live Simulation Animation
 
