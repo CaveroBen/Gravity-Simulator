@@ -1191,12 +1191,12 @@ def visualize_network_3d_surface(network: MassSpringNetwork,
 def visualize_averaged_results_3d(results: dict, network_class, network_params: dict,
                                    title: str = "Averaged 3D Displacement Visualization"):
     """
-    Visualize averaged results from multiple simulations in 3D where the z-axis 
+    Visualize averaged results from multiple simulations in 3D where the z-axis
     represents average displacement magnitude.
     
-    This function uses averaged data from multiple simulations instead of running 
-    a single simulation, providing a more robust statistical view of the displacement 
-    patterns.
+    This function uses averaged data from multiple simulations instead of
+    running a single simulation, providing a more robust statistical view
+    of the displacement patterns.
     
     Args:
         results: Dictionary returned by run_multiple_simulations containing:
