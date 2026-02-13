@@ -21,6 +21,7 @@ A Python package to simulate quantum gravity using mass-spring networks. This si
   - Displays displacement vectors as arrows attached to each point
   - Visualizes displacement magnitudes with color-coded heatmaps
   - Migration analysis plots showing attraction/repulsion over time
+  - **3D displacement visualization** for 2D networks showing displacement toward center as height
 
 ## Installation
 
@@ -163,6 +164,38 @@ network = Network2DTriangular(
 network.simulate(steps=1500, show_progress=True)
 ```
 
+### 3D Displacement Visualization
+
+For 2D networks, visualize displacement toward the center in 3D:
+
+```python
+from quantum_gravity_simulator import Network2DSquare, visualize_network_3d
+import matplotlib.pyplot as plt
+
+# Create and simulate a 2D network
+network = Network2DSquare(
+    size=5,
+    mass=1.0,
+    spring_constant=8.0,
+    damping=0.3,
+    dt=0.01,
+    temperature=1.5
+)
+
+network.simulate(steps=1500, show_progress=True)
+
+# Generate 3D visualization
+fig = visualize_network_3d(network, "3D Displacement View")
+plt.savefig('3d_displacement.png', dpi=150, bbox_inches='tight')
+plt.show()
+```
+
+The 3D visualization displays:
+- X and Y coordinates of particle positions
+- Z coordinate (height) representing displacement magnitude toward center
+- Color-coded points showing displacement intensity
+- Red star marking the center node with Brownian noise
+
 ### Multi-Simulation Averaging
 
 Run multiple simulations and average the results for more robust statistical insights:
@@ -222,6 +255,12 @@ The simulator generates comprehensive visualizations showing:
 6. **Relative Displacement Heatmap**: Color-coded visualization of relative displacement magnitudes
 7. **Migration Analysis Plots**: Time-series showing radial displacement and neighbor distances over time
 8. **Averaged Results** (new): Visualizations of averaged positions and displacements across multiple simulation runs
+9. **3D Displacement Visualization** (new): For 2D networks, a 3D plot where:
+   - X and Y axes show spatial positions of particles
+   - Z axis (height) represents the magnitude of displacement toward the center node
+   - Color-coded points indicate displacement magnitude
+   - Center node (with Brownian noise) is highlighted in red
+   - Provides intuitive visual understanding of entropy-driven migration patterns
 
 ## Physics Model
 
