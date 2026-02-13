@@ -103,9 +103,9 @@ fig_3d = visualize_network_3d(representative_network,
 if fig_3d:
     # Save 3D visualization with same timestamp
     filename_3d = os.path.join(figures_dir, f'{base_filename}_3d_{timestamp}.png')
-    plt.savefig(filename_3d, dpi=150, bbox_inches='tight')
+    fig_3d.savefig(filename_3d, dpi=150, bbox_inches='tight')
     print(f"Saved 3D visualization to: {filename_3d}")
-    plt.close()
+    plt.close(fig_3d)
 
 # Print statistics
 print("\nAveraged Results:")
