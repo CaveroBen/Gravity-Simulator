@@ -1040,7 +1040,8 @@ def visualize_network_3d(network: MassSpringNetwork, title: str = "3D Displaceme
     return fig
 
 
-def visualize_network_3d_surface(network: MassSpringNetwork, title: str = "3D Displacement Surface Visualization",
+def visualize_network_3d_surface(network: MassSpringNetwork, 
+                                  title: str = "3D Displacement Surface Visualization",
                                   interactive: bool = True):
     """
     Visualize the network in 3D with a surface plot where the third dimension is the magnitude of 
@@ -1229,8 +1230,8 @@ def animate_simulation_live(network_class, network_params: dict, simulation_step
     triang = Triangulation(x, y)
     
     # Initial plot
-    surf = [ax.plot_trisurf(triang, z, cmap='viridis', alpha=0.7, linewidth=0.2,
-                            edgecolor='black', antialiased=True)]
+    surf = ax.plot_trisurf(triang, z, cmap='viridis', alpha=0.7, linewidth=0.2,
+                           edgecolor='black', antialiased=True)
     
     # Scatter plot for nodes
     non_center_mask = np.ones(len(network.positions), dtype=bool)
@@ -1244,7 +1245,7 @@ def animate_simulation_live(network_class, network_params: dict, simulation_step
                                c='red', s=300, marker='*', edgecolors='darkred', linewidths=2)
     
     # Add colorbar
-    cbar = plt.colorbar(surf[0], ax=ax, shrink=0.6, pad=0.1)
+    cbar = plt.colorbar(surf, ax=ax, shrink=0.6, pad=0.1)
     cbar.set_label('Displacement Magnitude Toward Center', rotation=270, labelpad=20)
     
     # Labels
@@ -1263,7 +1264,7 @@ def animate_simulation_live(network_class, network_params: dict, simulation_step
     has_periodic = hasattr(network, 'periodic_vector') and callable(getattr(network, 'periodic_vector', None))
     
     print(f"\nRunning live simulation for {simulation_steps} steps...")
-    print("The plot will update every {} steps".format(update_interval))
+    print(f"The plot will update every {update_interval} steps")
     
     for step in tqdm(range(simulation_steps)):
         # Perform one simulation step
@@ -1300,8 +1301,8 @@ def animate_simulation_live(network_class, network_params: dict, simulation_step
             
             # Redraw surface
             triang = Triangulation(x, y)
-            surf[0] = ax.plot_trisurf(triang, z, cmap='viridis', alpha=0.7, linewidth=0.2,
-                                     edgecolor='black', antialiased=True)
+            surf = ax.plot_trisurf(triang, z, cmap='viridis', alpha=0.7, linewidth=0.2,
+                                   edgecolor='black', antialiased=True)
             
             # Redraw scatter points
             ax.scatter(x[non_center_mask], y[non_center_mask], z[non_center_mask],
