@@ -7,6 +7,9 @@ Supports 1D and 2D (square/triangular) configurations with Brownian motion.
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import animation
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.tri import Triangulation
 from typing import Tuple, List, Optional
 from tqdm import tqdm
 
@@ -1035,3 +1038,294 @@ def visualize_network_3d(network: MassSpringNetwork, title: str = "3D Displaceme
     
     plt.tight_layout()
     return fig
+
+
+def visualize_network_3d_surface(network: MassSpringNetwork, title: str = "3D Displacement Surface Visualization",
+                                  interactive: bool = True):
+    """
+    Visualize the network in 3D with a surface plot where the third dimension is the magnitude of 
+    displacement towards the center node. The surface connects points smoothly.
+    
+    For 2D networks, this creates a 3D surface plot where:
+    - X and Y are the spatial positions of the particles
+    - Z is the magnitude of displacement towards the center (the particle with noise)
+    - Points are connected by a triangulated surface mesh
+    
+    Args:
+        network: The network to visualize. Must be a MassSpringNetwork with 
+                get_final_positions(), get_initial_positions() methods, and a 
+                center_idx attribute.
+        title: Title for the plot
+        interactive: If True, enables interactive rotation and repositioning (default: True)
+    
+    Returns:
+        The matplotlib figure object, or None if the network is not 2D or 
+        center_idx is not defined
+    """
+    positions = network.get_final_positions()
+    initial_positions = network.get_initial_positions()
+    
+    # Check if network is 2D
+    if positions.shape[1] != 2:
+        print("Warning: 3D surface visualization is only supported for 2D networks.")
+        return None
+    
+    if network.center_idx is None:
+        print("Warning: No center node defined in the network.")
+        return None
+    
+    # Calculate displacement magnitudes toward the center
+    center_pos_current = positions[network.center_idx]
+    center_pos_initial = initial_positions[network.center_idx]
+    
+    # Check if this network has periodic boundary support
+    has_periodic = hasattr(network, 'periodic_vector') and callable(getattr(network, 'periodic_vector', None))
+    
+    displacement_magnitudes = np.zeros(len(positions))
+    
+    for i in range(len(positions)):
+        if i == network.center_idx:
+            # The center node itself has zero "displacement toward center"
+            displacement_magnitudes[i] = 0.0
+        else:
+            # Calculate distance from mass i to center (current and initial)
+            if has_periodic:
+                # Use periodic boundaries for distance calculation
+                r_current = network.periodic_vector(positions[i], center_pos_current)
+                r_initial = network.periodic_vector(initial_positions[i], center_pos_initial)
+            else:
+                # Direct distance without periodic boundaries
+                r_current = center_pos_current - positions[i]
+                r_initial = center_pos_initial - initial_positions[i]
+            
+            dist_current = np.linalg.norm(r_current)
+            dist_initial = np.linalg.norm(r_initial)
+            
+            # Positive value means moved toward center (magnitude of displacement)
+            displacement_magnitudes[i] = dist_initial - dist_current
+    
+    # Create triangulation for the surface
+    x = positions[:, 0]
+    y = positions[:, 1]
+    z = displacement_magnitudes
+    
+    # Create a Delaunay triangulation
+    triang = Triangulation(x, y)
+    
+    # Create 3D plot
+    fig = plt.figure(figsize=(14, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Plot the surface
+    surf = ax.plot_trisurf(triang, z, cmap='viridis', alpha=0.7, linewidth=0.2, 
+                           edgecolor='black', antialiased=True)
+    
+    # Separate center and non-center nodes for visualization
+    non_center_mask = np.ones(len(positions), dtype=bool)
+    non_center_mask[network.center_idx] = False
+    
+    # Plot non-center nodes on top of surface
+    ax.scatter(
+        positions[non_center_mask, 0],
+        positions[non_center_mask, 1],
+        displacement_magnitudes[non_center_mask],
+        c=displacement_magnitudes[non_center_mask],
+        cmap='viridis',
+        s=80,
+        alpha=0.9,
+        edgecolors='black',
+        linewidths=1,
+        label='Particles'
+    )
+    
+    # Plot center node
+    ax.scatter(
+        positions[network.center_idx, 0],
+        positions[network.center_idx, 1],
+        displacement_magnitudes[network.center_idx],
+        c='red',
+        s=300,
+        marker='*',
+        label='Center node (with noise)',
+        edgecolors='darkred',
+        linewidths=2,
+        zorder=10
+    )
+    
+    # Add colorbar
+    cbar = plt.colorbar(surf, ax=ax, shrink=0.6, pad=0.1)
+    cbar.set_label('Displacement Magnitude Toward Center', rotation=270, labelpad=20)
+    
+    # Labels and title
+    ax.set_xlabel('X Position', fontsize=11)
+    ax.set_ylabel('Y Position', fontsize=11)
+    ax.set_zlabel('Displacement Toward Center', fontsize=11)
+    ax.set_title(title, fontsize=14, fontweight='bold')
+    ax.legend(loc='upper left')
+    
+    # Add grid for better depth perception
+    ax.grid(True, alpha=0.3)
+    
+    # Improve viewing angle
+    ax.view_init(elev=20, azim=45)
+    
+    # Enable interactive rotation if requested
+    if interactive:
+        # Enable mouse interaction for rotation
+        plt.ion()  # Turn on interactive mode
+        print("\n" + "="*60)
+        print("INTERACTIVE 3D VISUALIZATION")
+        print("="*60)
+        print("You can now:")
+        print("  - Click and drag to rotate the view")
+        print("  - Right-click and drag to zoom")
+        print("  - Use mouse wheel to zoom")
+        print("  - Close the window when finished")
+        print("="*60 + "\n")
+    
+    plt.tight_layout()
+    return fig
+
+
+def animate_simulation_live(network_class, network_params: dict, simulation_steps: int,
+                            update_interval: int = 50, title: str = "Live Simulation"):
+    """
+    Run a simulation with live animation showing the network state in real-time.
+    
+    This function creates a network, runs the simulation, and updates the visualization
+    every 'update_interval' steps so you can watch the simulation evolve in real-time.
+    
+    Args:
+        network_class: The network class to instantiate (e.g., Network2DSquare)
+        network_params: Dictionary of parameters to pass to the network constructor
+        simulation_steps: Total number of simulation steps to run
+        update_interval: Number of simulation steps between visualization updates (default: 50)
+        title: Title for the animation
+    
+    Returns:
+        The final network object after simulation
+    """
+    # Create the network
+    network = network_class(**network_params)
+    
+    # Check if network is 2D
+    if network.positions.shape[1] != 2:
+        print("Warning: Live animation is only supported for 2D networks.")
+        return network
+    
+    # Store initial positions
+    network.initial_positions = network.positions.copy()
+    
+    # Create figure and axis
+    fig = plt.figure(figsize=(14, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Initialize data storage
+    x = network.positions[:, 0]
+    y = network.positions[:, 1]
+    z = np.zeros(len(network.positions))
+    
+    # Create triangulation (this won't change during simulation)
+    triang = Triangulation(x, y)
+    
+    # Initial plot
+    surf = [ax.plot_trisurf(triang, z, cmap='viridis', alpha=0.7, linewidth=0.2,
+                            edgecolor='black', antialiased=True)]
+    
+    # Scatter plot for nodes
+    non_center_mask = np.ones(len(network.positions), dtype=bool)
+    non_center_mask[network.center_idx] = False
+    
+    scatter_nodes = ax.scatter(x[non_center_mask], y[non_center_mask], z[non_center_mask],
+                               c=z[non_center_mask], cmap='viridis', s=80, alpha=0.9,
+                               edgecolors='black', linewidths=1)
+    
+    scatter_center = ax.scatter(x[network.center_idx], y[network.center_idx], z[network.center_idx],
+                               c='red', s=300, marker='*', edgecolors='darkred', linewidths=2)
+    
+    # Add colorbar
+    cbar = plt.colorbar(surf[0], ax=ax, shrink=0.6, pad=0.1)
+    cbar.set_label('Displacement Magnitude Toward Center', rotation=270, labelpad=20)
+    
+    # Labels
+    ax.set_xlabel('X Position', fontsize=11)
+    ax.set_ylabel('Y Position', fontsize=11)
+    ax.set_zlabel('Displacement Toward Center', fontsize=11)
+    ax.set_title(f"{title} - Step 0/{simulation_steps}", fontsize=14, fontweight='bold')
+    ax.view_init(elev=20, azim=45)
+    ax.grid(True, alpha=0.3)
+    
+    plt.ion()
+    plt.show()
+    
+    # Run simulation with periodic updates
+    center_pos_initial = network.initial_positions[network.center_idx]
+    has_periodic = hasattr(network, 'periodic_vector') and callable(getattr(network, 'periodic_vector', None))
+    
+    print(f"\nRunning live simulation for {simulation_steps} steps...")
+    print("The plot will update every {} steps".format(update_interval))
+    
+    for step in tqdm(range(simulation_steps)):
+        # Perform one simulation step
+        network.step()
+        
+        # Update visualization every update_interval steps
+        if (step + 1) % update_interval == 0 or step == simulation_steps - 1:
+            # Calculate current displacement magnitudes
+            center_pos_current = network.positions[network.center_idx]
+            displacement_magnitudes = np.zeros(len(network.positions))
+            
+            for i in range(len(network.positions)):
+                if i == network.center_idx:
+                    displacement_magnitudes[i] = 0.0
+                else:
+                    if has_periodic:
+                        r_current = network.periodic_vector(network.positions[i], center_pos_current)
+                        r_initial = network.periodic_vector(network.initial_positions[i], center_pos_initial)
+                    else:
+                        r_current = center_pos_current - network.positions[i]
+                        r_initial = center_pos_initial - network.initial_positions[i]
+                    
+                    dist_current = np.linalg.norm(r_current)
+                    dist_initial = np.linalg.norm(r_initial)
+                    displacement_magnitudes[i] = dist_initial - dist_current
+            
+            # Update positions and z values
+            x = network.positions[:, 0]
+            y = network.positions[:, 1]
+            z = displacement_magnitudes
+            
+            # Clear and redraw
+            ax.clear()
+            
+            # Redraw surface
+            triang = Triangulation(x, y)
+            surf[0] = ax.plot_trisurf(triang, z, cmap='viridis', alpha=0.7, linewidth=0.2,
+                                     edgecolor='black', antialiased=True)
+            
+            # Redraw scatter points
+            ax.scatter(x[non_center_mask], y[non_center_mask], z[non_center_mask],
+                      c=z[non_center_mask], cmap='viridis', s=80, alpha=0.9,
+                      edgecolors='black', linewidths=1)
+            
+            ax.scatter(x[network.center_idx], y[network.center_idx], z[network.center_idx],
+                      c='red', s=300, marker='*', edgecolors='darkred', linewidths=2)
+            
+            # Update labels and title
+            ax.set_xlabel('X Position', fontsize=11)
+            ax.set_ylabel('Y Position', fontsize=11)
+            ax.set_zlabel('Displacement Toward Center', fontsize=11)
+            ax.set_title(f"{title} - Step {step+1}/{simulation_steps}", fontsize=14, fontweight='bold')
+            ax.view_init(elev=20, azim=45)
+            ax.grid(True, alpha=0.3)
+            
+            plt.draw()
+            plt.pause(0.001)
+    
+    print("\n" + "="*60)
+    print("Live simulation completed!")
+    print("Close the plot window to continue...")
+    print("="*60 + "\n")
+    
+    plt.ioff()
+    return network
