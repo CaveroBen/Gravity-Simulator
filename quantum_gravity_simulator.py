@@ -14,6 +14,25 @@ from typing import Tuple, List, Optional
 from tqdm import tqdm
 
 
+def _setup_interactive_3d_mode():
+    """
+    Helper function to enable interactive 3D mode with instructions.
+    
+    This is used by 3D visualization functions to enable mouse-controlled
+    rotation and zoom.
+    """
+    plt.ion()  # Turn on interactive mode
+    print("\n" + "="*60)
+    print("INTERACTIVE 3D VISUALIZATION")
+    print("="*60)
+    print("You can now:")
+    print("  - Click and drag to rotate the view")
+    print("  - Right-click and drag to zoom")
+    print("  - Use mouse wheel to zoom")
+    print("  - Close the window when finished")
+    print("="*60 + "\n")
+
+
 class MassSpringNetwork:
     """Base class for mass-spring network simulation."""
     
@@ -925,7 +944,8 @@ def visualize_averaged_results(results: dict, network_class, network_params: dic
     return fig
 
 
-def visualize_network_3d(network: MassSpringNetwork, title: str = "3D Displacement Visualization"):
+def visualize_network_3d(network: MassSpringNetwork, title: str = "3D Displacement Visualization",
+                         elev: float = 20, azim: float = 45, interactive: bool = False):
     """
     Visualize the network in 3D where the third dimension is the magnitude of 
     displacement towards the center node.
@@ -939,6 +959,9 @@ def visualize_network_3d(network: MassSpringNetwork, title: str = "3D Displaceme
                 get_final_positions(), get_initial_positions() methods, and a 
                 center_idx attribute.
         title: Title for the plot
+        elev: Elevation angle in degrees for viewing (default: 20)
+        azim: Azimuth angle in degrees for viewing (default: 45)
+        interactive: If True, enables interactive rotation and repositioning (default: False)
     
     Returns:
         The matplotlib figure object, or None if the network is not 2D or 
@@ -1033,8 +1056,12 @@ def visualize_network_3d(network: MassSpringNetwork, title: str = "3D Displaceme
     # Add grid for better depth perception
     ax.grid(True, alpha=0.3)
     
-    # Improve viewing angle
-    ax.view_init(elev=20, azim=45)
+    # Set viewing angle
+    ax.view_init(elev=elev, azim=azim)
+    
+    # Enable interactive rotation if requested
+    if interactive:
+        _setup_interactive_3d_mode()
     
     plt.tight_layout()
     return fig
@@ -1042,6 +1069,7 @@ def visualize_network_3d(network: MassSpringNetwork, title: str = "3D Displaceme
 
 def visualize_network_3d_surface(network: MassSpringNetwork, 
                                   title: str = "3D Displacement Surface Visualization",
+                                  elev: float = 20, azim: float = 45,
                                   interactive: bool = True):
     """
     Visualize the network in 3D with a surface plot where the third dimension is the magnitude of 
@@ -1057,6 +1085,8 @@ def visualize_network_3d_surface(network: MassSpringNetwork,
                 get_final_positions(), get_initial_positions() methods, and a 
                 center_idx attribute.
         title: Title for the plot
+        elev: Elevation angle in degrees for viewing (default: 20)
+        azim: Azimuth angle in degrees for viewing (default: 45)
         interactive: If True, enables interactive rotation and repositioning (default: True)
     
     Returns:
@@ -1167,29 +1197,140 @@ def visualize_network_3d_surface(network: MassSpringNetwork,
     # Add grid for better depth perception
     ax.grid(True, alpha=0.3)
     
-    # Improve viewing angle
-    ax.view_init(elev=20, azim=45)
+    # Set viewing angle
+    ax.view_init(elev=elev, azim=azim)
     
     # Enable interactive rotation if requested
     if interactive:
-        # Enable mouse interaction for rotation
-        plt.ion()  # Turn on interactive mode
-        print("\n" + "="*60)
-        print("INTERACTIVE 3D VISUALIZATION")
-        print("="*60)
-        print("You can now:")
-        print("  - Click and drag to rotate the view")
-        print("  - Right-click and drag to zoom")
-        print("  - Use mouse wheel to zoom")
-        print("  - Close the window when finished")
-        print("="*60 + "\n")
+        _setup_interactive_3d_mode()
+    
+    plt.tight_layout()
+    return fig
+
+
+def visualize_averaged_results_3d(results: dict, network_class, network_params: dict,
+                                   title: str = "Averaged 3D Displacement Visualization",
+                                   elev: float = 20, azim: float = 45,
+                                   interactive: bool = False, alpha: float = 1.0):
+    """
+    Visualize averaged results from multiple simulations in 3D where the z-axis
+    represents average displacement magnitude.
+    
+    This function uses averaged data from multiple simulations instead of
+    running a single simulation, providing a more robust statistical view
+    of the displacement patterns.
+    
+    Args:
+        results: Dictionary returned by run_multiple_simulations
+        network_class: The network class used (Network2DSquare or Network2DTriangular)
+        network_params: Dictionary of network parameters
+        title: Title for the plot
+        elev: Elevation angle in degrees for viewing (default: 20)
+        azim: Azimuth angle in degrees for viewing (default: 45)
+        interactive: If True, enables interactive rotation and repositioning (default: False)
+        alpha: Opacity of the surface (0.0 = transparent, 1.0 = opaque, default: 1.0)
+    
+    Returns:
+        The matplotlib figure object, or None if the network is not 2D
+    """
+    initial_positions = results['initial_positions']
+    average_final_positions = results['average_final_positions']
+    average_displacements = results['average_displacements']
+    n_simulations = results['n_simulations']
+    
+    # Check if network is 2D
+    if initial_positions.shape[1] != 2:
+        print("Warning: 3D visualization is only supported for 2D networks.")
+        return None
+    
+    # Create a temporary network to get center_idx
+    temp_network = network_class(**network_params)
+    center_idx = temp_network.center_idx
+    
+    if center_idx is None:
+        print("Warning: No center node defined in the network.")
+        return None
+    
+    # Calculate average displacement magnitudes
+    # These are the magnitudes of the displacement vectors from initial to final positions
+    avg_displacement_magnitudes = np.linalg.norm(average_displacements, axis=1)
+    
+    # Create triangulation for the surface
+    x = average_final_positions[:, 0]
+    y = average_final_positions[:, 1]
+    z = avg_displacement_magnitudes
+    
+    # Create a Delaunay triangulation
+    triang = Triangulation(x, y)
+    
+    # Create 3D plot
+    fig = plt.figure(figsize=(14, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Plot the surface
+    surf = ax.plot_trisurf(triang, z, cmap='viridis', alpha=alpha, linewidth=0,
+                           antialiased=True)
+    
+    # Separate center and non-center nodes for visualization
+    non_center_mask = np.ones(len(average_final_positions), dtype=bool)
+    non_center_mask[center_idx] = False
+    
+    # Plot non-center nodes on top of surface
+    ax.scatter(
+        average_final_positions[non_center_mask, 0],
+        average_final_positions[non_center_mask, 1],
+        avg_displacement_magnitudes[non_center_mask],
+        c=avg_displacement_magnitudes[non_center_mask],
+        cmap='viridis',
+        s=80,
+        alpha=0.9,
+        edgecolors='black',
+        linewidths=1,
+        label='Particles'
+    )
+    
+    # Plot center node
+    ax.scatter(
+        average_final_positions[center_idx, 0],
+        average_final_positions[center_idx, 1],
+        avg_displacement_magnitudes[center_idx],
+        c='red',
+        s=300,
+        marker='*',
+        label='Center node (with noise)',
+        edgecolors='darkred',
+        linewidths=2
+    )
+    
+    # Add colorbar
+    cbar = plt.colorbar(surf, ax=ax, shrink=0.6, pad=0.1)
+    cbar.set_label('Average Displacement Magnitude', rotation=270, labelpad=20)
+    
+    # Labels and title
+    ax.set_xlabel('X Position', fontsize=11)
+    ax.set_ylabel('Y Position', fontsize=11)
+    ax.set_zlabel('Average Displacement Magnitude', fontsize=11)
+    ax.set_title(f'{title}\n(Averaged over {n_simulations} simulations)', 
+                 fontsize=14, fontweight='bold')
+    ax.legend(loc='upper left')
+    
+    # Add grid for better depth perception
+    ax.grid(True, alpha=0.3)
+    
+    # Set viewing angle
+    ax.view_init(elev=elev, azim=azim)
+    
+    # Enable interactive rotation if requested
+    if interactive:
+        _setup_interactive_3d_mode()
     
     plt.tight_layout()
     return fig
 
 
 def animate_simulation_live(network_class, network_params: dict, simulation_steps: int,
-                            update_interval: int = 50, title: str = "Live Simulation"):
+                            update_interval: int = 50, title: str = "Live Simulation",
+                            elev: float = 20, azim: float = 45):
     """
     Run a simulation with live animation showing the network state in real-time.
     
@@ -1202,6 +1343,8 @@ def animate_simulation_live(network_class, network_params: dict, simulation_step
         simulation_steps: Total number of simulation steps to run
         update_interval: Number of simulation steps between visualization updates (default: 50)
         title: Title for the animation
+        elev: Elevation angle in degrees for viewing (default: 20)
+        azim: Azimuth angle in degrees for viewing (default: 45)
     
     Returns:
         The final network object after simulation
@@ -1253,7 +1396,7 @@ def animate_simulation_live(network_class, network_params: dict, simulation_step
     ax.set_ylabel('Y Position', fontsize=11)
     ax.set_zlabel('Displacement Toward Center', fontsize=11)
     ax.set_title(f"{title} - Step 0/{simulation_steps}", fontsize=14, fontweight='bold')
-    ax.view_init(elev=20, azim=45)
+    ax.view_init(elev=elev, azim=azim)
     ax.grid(True, alpha=0.3)
     
     plt.ion()
@@ -1317,7 +1460,7 @@ def animate_simulation_live(network_class, network_params: dict, simulation_step
             ax.set_ylabel('Y Position', fontsize=11)
             ax.set_zlabel('Displacement Toward Center', fontsize=11)
             ax.set_title(f"{title} - Step {step+1}/{simulation_steps}", fontsize=14, fontweight='bold')
-            ax.view_init(elev=20, azim=45)
+            ax.view_init(elev=elev, azim=azim)
             ax.grid(True, alpha=0.3)
             
             plt.draw()
