@@ -7,6 +7,7 @@ Created on Tue Feb 10 16:14:14 2026
 """
 
 import os
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -19,6 +20,16 @@ from quantum_gravity_simulator import (
     visualize_averaged_results_3d
 )
 
+
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description='Run quantum gravity simulations with 3D visualization')
+parser.add_argument('--elev', type=float, default=20, 
+                    help='Elevation angle for 3D view in degrees (default: 20)')
+parser.add_argument('--azim', type=float, default=45,
+                    help='Azimuth angle for 3D view in degrees (default: 45)')
+parser.add_argument('--save-multiple-views', action='store_true',
+                    help='Save 3D surface from multiple viewing angles')
+args = parser.parse_args()
 
 # Define network parameters
 network_params = {
@@ -93,19 +104,38 @@ plt.close()
 
 # Generate 3D visualization from averaged data
 print("\nGenerating 3D displacement visualization from averaged data...")
-# Use the averaged data directly instead of running a single simulation
-fig_3d = visualize_averaged_results_3d(
-    results=results,
-    network_class=network_class,
-    network_params=network_params,
-    title=f"{network_class.__name__} - 3D Averaged Displacement View"
-)
-if fig_3d:
-    # Save 3D visualization with same timestamp
-    filename_3d = os.path.join(figures_dir, f'{base_filename}_3d_{timestamp}.png')
-    fig_3d.savefig(filename_3d, dpi=150, bbox_inches='tight')
-    print(f"Saved 3D visualization to: {filename_3d}")
-    plt.close(fig_3d)
+print(f"Using viewing angles: elevation={args.elev}°, azimuth={args.azim}°")
+
+# Define viewing angles to save
+if args.save_multiple_views:
+    viewing_angles = [
+        ("default", args.elev, args.azim),
+        ("top", 90, 0),
+        ("side", 0, 0),
+        ("front", 0, 90),
+    ]
+    print("Saving multiple viewing angles: default, top, side, front")
+else:
+    viewing_angles = [("custom", args.elev, args.azim)]
+
+# Generate and save 3D visualizations
+for view_name, elev, azim in viewing_angles:
+    print(f"  Generating {view_name} view (elev={elev}°, azim={azim}°)...")
+    fig_3d = visualize_averaged_results_3d(
+        results=results,
+        network_class=network_class,
+        network_params=network_params,
+        title=f"{network_class.__name__} - 3D Averaged Displacement View",
+        elev=elev,
+        azim=azim,
+        alpha=1.0  # Opaque surface
+    )
+    if fig_3d:
+        # Save 3D visualization with same timestamp and view name
+        filename_3d = os.path.join(figures_dir, f'{base_filename}_3d_{view_name}_{timestamp}.png')
+        fig_3d.savefig(filename_3d, dpi=150, bbox_inches='tight')
+        print(f"  Saved 3D visualization to: {filename_3d}")
+        plt.close(fig_3d)
 
 # Print statistics
 print("\nAveraged Results:")

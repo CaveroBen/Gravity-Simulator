@@ -1211,7 +1211,7 @@ def visualize_network_3d_surface(network: MassSpringNetwork,
 def visualize_averaged_results_3d(results: dict, network_class, network_params: dict,
                                    title: str = "Averaged 3D Displacement Visualization",
                                    elev: float = 20, azim: float = 45,
-                                   interactive: bool = False):
+                                   interactive: bool = False, alpha: float = 1.0):
     """
     Visualize averaged results from multiple simulations in 3D where the z-axis
     represents average displacement magnitude.
@@ -1228,6 +1228,7 @@ def visualize_averaged_results_3d(results: dict, network_class, network_params: 
         elev: Elevation angle in degrees for viewing (default: 20)
         azim: Azimuth angle in degrees for viewing (default: 45)
         interactive: If True, enables interactive rotation and repositioning (default: False)
+        alpha: Opacity of the surface (0.0 = transparent, 1.0 = opaque, default: 1.0)
     
     Returns:
         The matplotlib figure object, or None if the network is not 2D
@@ -1267,7 +1268,7 @@ def visualize_averaged_results_3d(results: dict, network_class, network_params: 
     ax = fig.add_subplot(111, projection='3d')
     
     # Plot the surface
-    surf = ax.plot_trisurf(triang, z, cmap='viridis', alpha=0.7, linewidth=0,
+    surf = ax.plot_trisurf(triang, z, cmap='viridis', alpha=alpha, linewidth=0,
                            antialiased=True)
     
     # Separate center and non-center nodes for visualization
