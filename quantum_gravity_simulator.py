@@ -214,6 +214,10 @@ class MassSpringNetwork:
         """
         Compute mean displacement of non-central masses toward/away from the center node.
         
+        Uses vector projection of displacement onto the direction towards the initial
+        (undisplaced) central node position. This captures the component of motion
+        that is specifically directed toward or away from the thermal center.
+        
         Positive value means masses have moved toward the center (attraction).
         Negative value means masses have moved away from the center (repulsion).
         
@@ -224,7 +228,6 @@ class MassSpringNetwork:
             return 0.0
         
         radial_disps = []
-        center_pos_current = self.positions[self.center_idx]
         center_pos_initial = self.initial_positions[self.center_idx]
         
         # Check if this network has periodic boundary support
@@ -234,22 +237,32 @@ class MassSpringNetwork:
             if i == self.center_idx:
                 continue
             
-            # Calculate distance from mass i to center (current and initial)
+            # Calculate displacement vector for this node
             if has_periodic:
-                # Use periodic boundaries for distance calculation
-                r_current = self.periodic_vector(self.positions[i], center_pos_current)
-                r_initial = self.periodic_vector(self.initial_positions[i], center_pos_initial)
+                # Displacement accounting for periodic boundaries
+                # displacement = current - initial (using periodic vector)
+                displacement = self.periodic_vector(self.initial_positions[i], self.positions[i])
             else:
-                # Direct distance without periodic boundaries
-                r_current = center_pos_current - self.positions[i]
-                r_initial = center_pos_initial - self.initial_positions[i]
+                # Direct displacement without periodic boundaries
+                displacement = self.positions[i] - self.initial_positions[i]
             
-            dist_current = np.linalg.norm(r_current)
-            dist_initial = np.linalg.norm(r_initial)
+            # Calculate direction from node's initial position to center's initial position
+            if has_periodic:
+                # Direction to center using periodic boundaries
+                direction_to_center = self.periodic_vector(self.initial_positions[i], center_pos_initial)
+            else:
+                # Direct direction to center
+                direction_to_center = center_pos_initial - self.initial_positions[i]
             
-            # Positive radial_disp means moved toward center
-            radial_disp = dist_initial - dist_current
-            radial_disps.append(radial_disp)
+            # Normalize direction vector
+            dist_to_center = np.linalg.norm(direction_to_center)
+            if dist_to_center > 0:
+                direction_unit = direction_to_center / dist_to_center
+                
+                # Project displacement onto direction toward center
+                # Positive projection = motion toward center
+                radial_component = np.dot(displacement, direction_unit)
+                radial_disps.append(radial_component)
         
         return np.mean(radial_disps) if radial_disps else 0.0
     
