@@ -470,35 +470,41 @@ class Network2DTriangular(MassSpringNetwork):
                 
                 if j % 2 == 0:
                     # Even columns (no X-offset):
-                    # - Right neighbor in same column
-                    # - Two neighbors in next column (j+1): at same i and i+1
+                    # 6 nearest neighbors at distance 1.0:
+                    #   (i-1, j), (i+1, j) - left/right in same column
+                    #   (i, j-1), (i-1, j-1) - lower neighbors in odd column
+                    #   (i, j+1), (i-1, j+1) - upper neighbors in odd column
+                    # We create 3 outgoing connections (the other 3 come as incoming)
                     
                     # Right neighbor (next row, same column)
                     idx2 = self.idx_map[((i + 1) % self.size, j)]
                     self.connections.append((idx1, idx2))
                     
-                    # Upper-right neighbor (same row, next column)
+                    # Upper-left neighbor (same row, next column - odd)
                     idx2 = self.idx_map[(i, (j + 1) % self.size)]
                     self.connections.append((idx1, idx2))
                     
-                    # Lower-right neighbor (next row, next column)
-                    idx2 = self.idx_map[((i + 1) % self.size, (j + 1) % self.size)]
+                    # Upper-left diagonal (previous row, next column - odd)
+                    idx2 = self.idx_map[((i - 1) % self.size, (j + 1) % self.size)]
                     self.connections.append((idx1, idx2))
                 else:
                     # Odd columns (X-offset = 0.5):
-                    # - Right neighbor in same column
-                    # - Two neighbors in next column (j+1): at i-1 and i
+                    # 6 nearest neighbors at distance 1.0:
+                    #   (i-1, j), (i+1, j) - left/right in same column
+                    #   (i, j-1), (i+1, j-1) - lower neighbors in even column
+                    #   (i, j+1), (i+1, j+1) - upper neighbors in even column
+                    # We create 3 outgoing connections (the other 3 come as incoming)
                     
                     # Right neighbor (next row, same column)
                     idx2 = self.idx_map[((i + 1) % self.size, j)]
                     self.connections.append((idx1, idx2))
                     
-                    # Upper-left neighbor (previous row, next column)
-                    idx2 = self.idx_map[((i - 1) % self.size, (j + 1) % self.size)]
+                    # Upper-right neighbor (same row, next column - even)
+                    idx2 = self.idx_map[(i, (j + 1) % self.size)]
                     self.connections.append((idx1, idx2))
                     
-                    # Lower-right neighbor (same row, next column)
-                    idx2 = self.idx_map[(i, (j + 1) % self.size)]
+                    # Upper-right diagonal (next row, next column - even)
+                    idx2 = self.idx_map[((i + 1) % self.size, (j + 1) % self.size)]
                     self.connections.append((idx1, idx2))
         
         # Center node
