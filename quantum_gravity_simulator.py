@@ -438,16 +438,22 @@ class Network2DTriangular(MassSpringNetwork):
     
     def _initialize_network(self):
         """Initialize the 2D triangular lattice structure with periodic boundaries."""
-        # Create masses in a triangular grid
+        # Create masses in a triangular grid with proper hexagonal geometry
         self.positions = np.zeros((self.n_masses, 2))
         self.idx_map = {}
+        
+        # For a true triangular/hexagonal lattice:
+        # - Y spacing = spacing * sqrt(3)/2 for equilateral triangles
+        # - Odd columns get X-offset of spacing/2
+        self.y_spacing = self.spacing * np.sqrt(3) / 2
         
         idx = 0
         for i in range(self.size):
             for j in range(self.size):
-                # Offset every other row for triangular lattice
-                x = i * self.spacing
-                y = j * self.spacing + (0.5 if i % 2 == 1 else 0.0)
+                # X-offset for odd columns (j) creates hexagonal pattern
+                x = i * self.spacing + (0.5 * self.spacing if j % 2 == 1 else 0.0)
+                # Y uses the hexagonal spacing
+                y = j * self.y_spacing
                 self.positions[idx] = [x, y]
                 self.idx_map[(i, j)] = idx
                 idx += 1
@@ -455,27 +461,44 @@ class Network2DTriangular(MassSpringNetwork):
         self.velocities = np.zeros_like(self.positions)
         
         # Connect adjacent masses with periodic boundaries (6 neighbors for triangular lattice)
+        # In hexagonal lattice, each node connects to 6 neighbors at distance = spacing
+        # The 3 connections we create here will be matched by 3 incoming from other nodes
         self.connections = []
         for i in range(self.size):
             for j in range(self.size):
                 idx1 = self.idx_map[(i, j)]
                 
-                # Right neighbor (with wrapping)
-                idx2 = self.idx_map[(i, (j + 1) % self.size)]
-                self.connections.append((idx1, idx2))
-                
-                # Bottom neighbor (with wrapping)
-                idx2 = self.idx_map[((i + 1) % self.size, j)]
-                self.connections.append((idx1, idx2))
-                
-                # Diagonal connections for triangular lattice (with wrapping)
-                if i % 2 == 0:
-                    # Even rows: connect to bottom-left (with wrapping)
-                    idx2 = self.idx_map[((i + 1) % self.size, (j - 1) % self.size)]
+                if j % 2 == 0:
+                    # Even columns (no X-offset):
+                    # - Right neighbor in same column
+                    # - Two neighbors in next column (j+1): at same i and i+1
+                    
+                    # Right neighbor (next row, same column)
+                    idx2 = self.idx_map[((i + 1) % self.size, j)]
+                    self.connections.append((idx1, idx2))
+                    
+                    # Upper-right neighbor (same row, next column)
+                    idx2 = self.idx_map[(i, (j + 1) % self.size)]
+                    self.connections.append((idx1, idx2))
+                    
+                    # Lower-right neighbor (next row, next column)
+                    idx2 = self.idx_map[((i + 1) % self.size, (j + 1) % self.size)]
                     self.connections.append((idx1, idx2))
                 else:
-                    # Odd rows: connect to bottom-right (with wrapping)
-                    idx2 = self.idx_map[((i + 1) % self.size, (j + 1) % self.size)]
+                    # Odd columns (X-offset = 0.5):
+                    # - Right neighbor in same column
+                    # - Two neighbors in next column (j+1): at i-1 and i
+                    
+                    # Right neighbor (next row, same column)
+                    idx2 = self.idx_map[((i + 1) % self.size, j)]
+                    self.connections.append((idx1, idx2))
+                    
+                    # Upper-left neighbor (previous row, next column)
+                    idx2 = self.idx_map[((i - 1) % self.size, (j + 1) % self.size)]
+                    self.connections.append((idx1, idx2))
+                    
+                    # Lower-right neighbor (same row, next column)
+                    idx2 = self.idx_map[(i, (j + 1) % self.size)]
                     self.connections.append((idx1, idx2))
         
         # Center node
@@ -498,10 +521,11 @@ class Network2DTriangular(MassSpringNetwork):
         """
         dx = target_pos - source_pos
         # Apply periodic boundary conditions
-        # For triangular lattice, we still use rectangular periodic boundaries
+        # For triangular lattice with proper hexagonal geometry:
+        # X wraps with period = size * spacing
+        # Y wraps with period = size * y_spacing (where y_spacing = spacing * sqrt(3)/2)
         Lx = self.size * self.spacing
-        # For triangular lattice, effective y-size accounting for offset
-        Ly = self.size * self.spacing
+        Ly = self.size * self.y_spacing
         dx[0] = dx[0] - Lx * np.round(dx[0] / Lx)
         dx[1] = dx[1] - Ly * np.round(dx[1] / Ly)
         return dx
